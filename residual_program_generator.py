@@ -34,7 +34,7 @@ class ResidualProgramGenerator(object):
             elif exp.isLet():
                 resExpList = self.genExpList(beta.children)
                 vnames = [ b[0] for b in exp.bindings]
-                subst = dict(zip(vnames, resExpList[1:]))
+                subst = dict(list(zip(vnames, resExpList[1:])))
                 return resExpList[0].applySubst(subst)
             else:
                 raise ValueError("Invalid expression")

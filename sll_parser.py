@@ -17,10 +17,10 @@ def mkIdent(tokens):
 def mkVar(t):
     return Var(t[0][0])
 
-lIdent = Word(string.lowercase, alphanums)
+lIdent = Word(string.ascii_lowercase, alphanums)
 lIdent.setParseAction(mkIdent)
 
-uIdent = Word(string.uppercase, alphanums)
+uIdent = Word(string.ascii_uppercase, alphanums)
 uIdent.setParseAction(mkIdent)
 
 fIdent = Word("f", alphanums)

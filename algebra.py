@@ -22,7 +22,7 @@ class Matcher(object):
         elif (pat.isCall() and
               pat.hasTheSameFunctorAs(exp) and
               len(pat.args) == len(exp.args)):
-            for p, e in itertools.izip(pat.args, exp.args):
+            for p, e in zip(pat.args, exp.args):
                 self.match(p, e)
                 if self.subst == None:
                     return
@@ -51,4 +51,4 @@ class NameGen(object):
     def freshNameList(self, n):
         tick = self.tick
         self.tick = tick + n
-        return ["%s%s" % (self.prefix, tick+k) for k in xrange(n)]
+        return ["%s%s" % (self.prefix, tick+k) for k in range(n)]

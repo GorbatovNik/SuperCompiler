@@ -30,7 +30,7 @@ class AlgebraTest(unittest.TestCase):
     def matchOK(self, pat, exp, expected):
         subst = matchAgainst(pExp(pat), pExp(exp))
         if subst:
-            subst_l = list(subst.iteritems())
+            subst_l = list(subst.items())
             subst_l.sort()
             subst = "".join(["%s->%s;" % (vname, e) 
                              for (vname, e) in subst_l])

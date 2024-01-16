@@ -47,7 +47,7 @@ class MSGBuilder(object):
                 break
         subst1 = dict()
         subst2 = dict()
-        for (vname, (e1, e2)) in self.subst.items():
+        for (vname, (e1, e2)) in list(self.subst.items()):
             subst1[vname] = e1
             subst2[vname] = e2
         result = Gen(self.exp, subst1, subst2)
@@ -56,19 +56,19 @@ class MSGBuilder(object):
         return result
 
     def commonFunctor(self):
-        for (vname, (e1, e2)) in self.subst.items():
+        for (vname, (e1, e2)) in list(self.subst.items()):
             if e1.hasTheSameFunctorAs(e2):
                 self.noProgress = False
                 ns = self.nameGen.freshNameList(len(e1.args))
                 vs = [Var(x) for x in ns]
                 self.exp = self.exp.applySubst({vname : e1.cloneFunctor(vs)})
                 del self.subst[vname]
-                self.subst.update(zip(ns, zip(e1.args, e2.args)))
+                self.subst.update(list(zip(ns, list(zip(e1.args, e2.args)))))
                 return
 
     def aMergeableKeyPair(self):
-        for i in self.subst.keys():
-            for j in self.subst.keys():
+        for i in list(self.subst.keys()):
+            for j in list(self.subst.keys()):
                 if i < j and self.subst[i] == self.subst[j]: # включая имена переменных
                     return (i, j)
         return None               

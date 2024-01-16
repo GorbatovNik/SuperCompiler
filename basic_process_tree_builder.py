@@ -40,7 +40,7 @@ class DrivingEngine(object):
             return [(arg, None) for arg in e.args]
         elif e.isFCall():
             rule = self.fRule[e.name]
-            p2a = dict(zip(rule.params, e.args))
+            p2a = dict(list(zip(rule.params, e.args)))
             body = rule.body.applySubst(p2a)
             return [(body, None)]
         elif e.isGCall():
@@ -51,8 +51,8 @@ class DrivingEngine(object):
                 cargs = arg0.args
                 rule = self.gcRule[(e.name, cname)]
                 p2a = dict()
-                p2a.update(zip(rule.cparams, cargs)) # могут ли параметры повторяться в правых частях правил?
-                p2a.update(zip(rule.params, args)) # сопоставление параметров и поддеревьев дол
+                p2a.update(list(zip(rule.cparams, cargs))) # могут ли параметры повторяться в правых частях правил?
+                p2a.update(list(zip(rule.params, args))) # сопоставление параметров и поддеревьев дол
                 body = rule.body.applySubst(p2a)
                 return [(body, None)]
             elif arg0.isVar():

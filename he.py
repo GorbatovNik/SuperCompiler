@@ -24,7 +24,7 @@ def heByDiving(e1, e2) :
     if e2.isVar():
         return False
     elif e2.isCall():
-        return any(map(lambda e: he(e1, e), e2.args))
+        return any([he(e1, e) for e in e2.args])
 
 def heByCoupling(e1, e2):
     if e1.isVar() and e2.isVar():
