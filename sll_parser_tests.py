@@ -50,6 +50,8 @@ class SLLParser_Tests(unittest.TestCase):
         self.expOK("fA(x,y)", "fA(x,y)")
         self.expOK("fA()", "fA()")
         self.expOK("gA(x,y)", "gA(x,y)")
+        self.expOK("hA(x,y)", "hA(x,y)")
+        self.expOK("hA()", "hA()")
         self.exc(exp, "gA()")
 
     def testProgram(self):
@@ -62,6 +64,7 @@ class SLLParser_Tests(unittest.TestCase):
         self.programOK("g(C(x))=A;", "g(C(x))=A;")
         self.programOK("g(C(x,y),z)=A;", "g(C(x,y),z)=A;")
         self.programOK("g(C,y)=A;", "g(C,y)=A;")
+        self.programOK("hEq(Z,Z)=True;hEq(S(x),S(y))=hEq(x,y);hEq(S(x),Z)=False;hEq(Z,S(x))=False;", "hEq(Z,Z)=True;hEq(S(x),S(y))=hEq(x,y);hEq(S(x),Z)=False;hEq(Z,S(x))=False;")
 
 
 if __name__ == "__main__":

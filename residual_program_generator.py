@@ -29,7 +29,7 @@ class ResidualProgramGenerator(object):
             elif exp.isCtr():
                 resExps = self.genExpList(beta.children)
                 return Ctr(exp.name, resExps)
-            elif exp.isFGCall():
+            elif exp.isFGHCall():
                 return self.genCall(beta)
             elif exp.isLet():
                 resExpList = self.genExpList(beta.children)
@@ -71,26 +71,38 @@ class ResidualProgramGenerator(object):
             self.sigs[beta] = sig1
             return sig1
 
-    def getChContr(self, children):
-        return [(n.contr.cname, n.contr.cparams) for n in children]
+    def getChContr(self, exp, children):
+        if isinstance(children[0].contr, Contraction):
+        #     if isinstance(exp.args[0], GCall):
+        #         print(exp)
+        #         print(["%s" % ch for ch in children])
+
+            return [{n.contr.vname : Ctr(n.contr.cname, [Var(par) for par in n.contr.cparams])} for n in children]
+        else:
+            return [n.contr for n in children]
 
     def genCall(self, beta):
         exp = beta.exp
         name = exp.name
         args = exp.args
         params = exp.vars()
-        if self.isVarTest(beta):
-            (name1, vs1) = self.getFGSig("g", beta, name, params)
+        print(exp)
+        print(["%s" % ch for ch in beta.children])
+        if self.tree.isFuncNode(beta):
+            (name1, vs1) = self.getFGSig("h", beta, name, params)
             bodies = self.genExpList(beta.children)
-            contrs = self.getChContr(beta.children)
-            grules = [GRule(name1, cname1, cparams1, params[1:], body1)
-                      for ((cname1, cparams1), body1) in zip(contrs, bodies)]
-            self.rules.extend(grules)
-            return GCall(name1, [Var(param) for param in params])
-        elif self.tree.isFuncNode(beta):
-            (name1, vs1) = self.getFGSig("f", beta, name, params)
-            body1 = self.genExp(beta.children[0])
-            self.rules.append(FRule(name1, params1, body1))
-            return FCall(name1, [Var(param) for param in params])
+            contrs = self.getChContr(exp, beta.children)
+            hcall = HCall(name1, [Var(param) for param in params])
+            patternLists = [hcall.applySubst(contr).args for contr in contrs]
+            hrules = [HRule(name1, patternList1, body1)
+                      for (patternList1, body1) in zip(patternLists, bodies)]
+            self.rules.extend(hrules)
+            return hcall
+        # elif self.tree.isFuncNode(beta):
+        #     assert False
+        #     (name1, vs1) = self.getFGSig("f", beta, name, params)
+        #     body1 = self.genExp(beta.children[0])
+        #     self.rules.append(FRule(name1, params1, body1))
+        #     return FCall(name1, [Var(param) for param in params])
         else:
             return self.genExp(beta.children[0])

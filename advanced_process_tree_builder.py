@@ -26,6 +26,7 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
         self.tree.replaceSubtree(alpha, letExp)
 
     def split(self, beta):
+        assert False
         exp = beta.exp
         args = exp.args
         names1 = self.nameGen.freshNameList(len(args))
@@ -40,9 +41,10 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
         else:
             self.abstract(alpha, gen.exp, gen.substA)
 
-    def findEmbeddedAncestor(self, beta):
+    def findEmbeddedAncestor(self, beta, contractionNeed):
         for alpha in beta.ancestors():
-            if alpha.exp.isFGCall() and embeddedIn(alpha.exp, beta.exp):
+            alphaContractionNeed = bool(alpha.children[0].contr)
+            if alpha.exp.isFGHCall() and alphaContractionNeed == contractionNeed and embeddedIn(alpha.exp, beta.exp):
                 return alpha
         return None
 
@@ -55,8 +57,10 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
         if alpha:
             self.loopBack(beta, alpha)
         else:
-            alpha = self.findEmbeddedAncestor(beta)
+            contrNeed = self.drivingEngine.drivingStep(beta.exp, checkContractionNeed=True)
+            alpha = self.findEmbeddedAncestor(beta, contrNeed)
             if alpha:
+                print("embeding found\nbeta=%s\nalpha=%s" % (beta, alpha))
                 self.generalizeAlphaOrSplit(beta, alpha)
             else:
                 self.expandNode(beta)

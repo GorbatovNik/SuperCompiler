@@ -8,6 +8,65 @@ Created on Aug 20, 2009
 from sll_language import *
 from algebra import matchAgainst 
 from process_tree import Contraction, Node, ProcessTree
+import copy
+
+class Solver:
+    def __init__(self, driveEngine, nameGen):
+        self.driveEngine = driveEngine
+        self.nameGen = nameGen
+        self.contractions = dict()
+        self.subst = dict()
+        self.isConsistentBool = True
+        self.extraDriving = None
+    
+    def isConsistent(self):
+        return self.isConsistentBool
+    
+    def addEquation(self, l, r):
+        l = l.applySubst(self.contractions)
+        
+        if r.isVar():
+            self.subst[r.vname] = l
+        elif l.isCtr() and r.isCtr():
+            if l.name == r.name:
+                for larg, rarg in zip(l.args, r.args):
+                    self.addEquation(larg, rarg)
+                    if self.extraDriving:
+                        return
+            else:
+                self.isConsistentBool = False
+        elif l.isVar():
+            def changeVarsToNewParams(e):
+                if e.isVar():
+                    freshName = self.nameGen.freshName()
+                    result = [(e.vname[:], Var(freshName))]
+                    e.vname = freshName
+                elif e.isCtr():
+                    result = []
+                    for arg in e.args:
+                        result = result + changeVarsToNewParams(arg)
+                else:
+                    raise ValueError('unexpected node in left side of rule met')
+                
+                return result
+
+            r = copy.deepcopy(r)
+            print(f"\nr before changing {r}")
+            subst = dict(changeVarsToNewParams(r))
+            print(f"r after changing {r}")
+            print(f"new subst: {subst}")
+            self.subst.update(subst)
+            newCntr = dict([(l.vname, r)])
+            for cntr in self.contractions.values():
+                cntr = cntr.applySubst(newCntr)
+            for subst in self.subst.values():
+                subst = subst.applySubst(newCntr)
+            self.contractions[l.vname] = r
+        
+        elif l.isCall():
+            self.extraDriving = self.driveEngine.drivingStep(l)
+        else:
+            raise ValueError('unknown situation')
 
 class DrivingEngine(object):
 
@@ -17,6 +76,7 @@ class DrivingEngine(object):
         self.fRule = dict()
         self.gRules = dict()
         self.gcRule = dict()
+        self.hRules = dict()
         for rule in prog.rules:
             name = rule.name
             if isinstance(rule, FRule):
@@ -28,6 +88,12 @@ class DrivingEngine(object):
                 else:
                     self.gRules[name] = [rule]
                 self.gcRule[(rule.name, rule.cname)] = rule
+            elif isinstance(rule, HRule):
+                if name in self.hRules:
+                    "Lists are mutable!"
+                    self.hRules[name].append(rule)
+                else:
+                    self.hRules[name] = [rule]
             else:
                 raise ValueError("Invalid rule")
 
@@ -35,14 +101,14 @@ class DrivingEngine(object):
 # e : Exp (Var, Call, Let, Ctr)
 
 # возвращает список выражений, на которые ветвится выражение e
-    def drivingStep(self, e):
+    def drivingStep(self, e, checkContractionNeed=False):
         if e.isCtr():
-            return [(arg, None) for arg in e.args]
+            return False if checkContractionNeed else [(arg, None) for arg in e.args]
         elif e.isFCall():
             rule = self.fRule[e.name]
             p2a = dict(list(zip(rule.params, e.args)))
             body = rule.body.applySubst(p2a)
-            return [(body, None)]
+            return False if checkContractionNeed else [(body, None)]
         elif e.isGCall():
             arg0 = e.args[0]
             args = e.args[1:]
@@ -51,18 +117,37 @@ class DrivingEngine(object):
                 cargs = arg0.args
                 rule = self.gcRule[(e.name, cname)]
                 p2a = dict()
-                p2a.update(list(zip(rule.cparams, cargs))) # могут ли параметры повторяться в правых частях правил?
-                p2a.update(list(zip(rule.params, args))) # сопоставление параметров и поддеревьев дол
+                p2a.update(list(zip(rule.cparams, cargs)))
+                p2a.update(list(zip(rule.params, args)))
                 body = rule.body.applySubst(p2a)
-                return [(body, None)]
+                return False if checkContractionNeed else [(body, None)]
             elif arg0.isVar():
                 rules = self.gRules[e.name]
-                return [ self.driveBranch(e, rule) for rule in rules ]
+                return True if checkContractionNeed else [ self.driveBranch(e, rule) for rule in rules ]
             else:
-                branches = self.drivingStep(arg0)
-                return [ (GCall(e.name, [exp] + args), c) for (exp, c) in branches]
+                branchesOrContrationNeed = self.drivingStep(arg0, checkContractionNeed)
+                return branchesOrContrationNeed if checkContractionNeed else [ (GCall(e.name, [exp] + args), c) for (exp, c) in branchesOrContrationNeed]
+        elif e.isHCall():
+            res = []
+            rules = self.hRules[e.name]
+            for rule in rules:
+                solver = Solver(self, self.nameGen)
+                for earg, rarg in zip(e.args, rule.patternList):
+                    solver_branches = solver.addEquation(earg, rarg)
+                    if solver_branches:
+                        if checkContractionNeed:
+                            return True
+                        branches = [(e.applySubst(c), c) for (_, c) in solver_branches]
+                        return branches 
+                if solver.isConsistent():
+                    res.append((rule.body.applySubst(solver.subst), solver.contractions))
+                    if not solver.contractions:
+                        if checkContractionNeed:
+                            return len(res)>1
+                        return res
+            return len(res)>0 if checkContractionNeed else res
         elif e.isLet():
-            return [(e.body, None)] + [(exp, None) for (vn, exp) in e.bindings]
+            return False if checkContractionNeed else [(e.body, None)] + [(exp, None) for (vn, exp) in e.bindings]
         else:
             raise ValueError("Unknown expression type")
 
@@ -124,6 +209,7 @@ class BasicProcessTreeBuilder(object):
                 break
             k -= 1
             beta = self.tree.findUnprocessedNode()
+            print(beta)
             if not beta:
                 break
             self.buildStep(beta)

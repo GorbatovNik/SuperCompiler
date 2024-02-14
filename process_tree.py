@@ -59,7 +59,7 @@ class Node(object):
 
     def findMoreGeneralAncestor(self): 
         for n in self.ancestors():
-            if n.exp.isFGCall() and instOf(self.exp, n.exp): # с точностью до имен переменных
+            if n.exp.isFGHCall() and instOf(self.exp, n.exp): # с точностью до имен переменных
                 return n
         return None
     
@@ -69,7 +69,7 @@ class Node(object):
             return True
         elif self.exp.isCtr():
             return self.exp.args == []
-        elif self.exp.isFGCall():
+        elif self.exp.isFGHCall():
             return self.funcAncestor() != None
         elif self.exp.isLet():
             return False

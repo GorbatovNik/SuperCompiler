@@ -13,7 +13,8 @@ from algebra import *
 # to the same category (as defined by `aVarIsUnderAttack`).
 
 def embeddedIn(e1, e2):
-    return aVarIsUnderAttack(e1) == aVarIsUnderAttack(e2) and he(e1, e2)
+    # return aVarIsUnderAttack(e1) == aVarIsUnderAttack(e2) and he(e1, e2)
+    return he(e1, e2)
 
 # This is the "classic" homeomorphic embedding relation.
 

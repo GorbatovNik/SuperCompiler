@@ -24,8 +24,10 @@ class Exp(object):
         return False
     def isGCall(self):
         return False
-    def isFGCall(self):
-        return self.isFCall() or self.isGCall()
+    def isHCall(self):
+        return False
+    def isFGHCall(self):
+        return self.isFCall() or self.isGCall() or self.isHCall()
     def isLet(self):
         return False
     def hasTheSameFunctorAs(self, other):
@@ -123,6 +125,12 @@ class GCall(Call):
         Call.__init__(self, name, args)
     def isGCall(self):
         return True
+    
+class HCall(Call):
+    def __init__(self, name, args):
+        Call.__init__(self, name, args)
+    def isHCall(self):
+        return True
 
 class FRule(object):
     def __init__(self, name, params, body):
@@ -151,6 +159,16 @@ class GRule(object):
             pat_s += ","
         body_s = "%s" % self.body
         return self.name + "(" + pat_s + params_s + ")=" + body_s + ";"
+
+class HRule(object):
+    def __init__(self, name, patternList, body):
+        self.name = name
+        self.patternList = patternList
+        self.body = body
+    def __str__(self):
+        patterns_s = ",".join([str(pattern) for pattern in self.patternList])
+        body_s = "%s" % self.body
+        return self.name + "(" + patterns_s + ")=" + body_s + ";"
 
 class Program(object):
     def __init__(self, rules):

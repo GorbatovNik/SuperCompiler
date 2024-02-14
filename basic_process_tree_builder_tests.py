@@ -7,7 +7,7 @@ Created on Aug 20, 2009
 
 import unittest
 
-from sll_parser import pExp, pProg
+from sll_parser import pExp, pProg, exp
 from algebra import *
 from basic_process_tree_builder import *
 
@@ -37,9 +37,30 @@ class BasicScpTest(unittest.TestCase):
     def buildPrTreeOK(self, prog, e, expected):
         tree = self.buildPrTree(pProg(prog), pExp(e))
         self.assertEqual(expected, "%s" % tree)
+    
+    def parse(self, input):
+        return exp.parseString(input, True)
+
+    def solve(self, system):
+        nameGen = NameGen("v", 100)
+        solver = Solver(None, nameGen)
+        for l, r in system:
+            lexp, rexp = self.parse(l)[0], self.parse(r)[0]
+            solver.addEquation(lexp, rexp)
+       
+        print(f'\n============\nsystem:')
+        for l, r in system:
+            print(f'{l} = {r}')
+        print(f'------------\nconsistent={solver.isConsistent()}\ncontrations:')
+        [print(f'{k} -> {v}') for k, v in solver.contractions.items()]
+        print('substs:')
+        [print(f'{v} <- {k}') for k, v in solver.subst.items()]
 
     pAdd = "gAdd(Z,y)=y;gAdd(S(x),y)=S(gAdd(x,y));"
     pAddAcc = "gAddAcc(Z,y)=y;gAddAcc(S(x),y)=gAddAcc(x,S(y));"
+    
+    # pEq = "hEq(S(x),S(y))=hEq(x,y);hEq(Z,Z)=True;hEq(S(x),Z)=False;hEq(Z,S(y))=False;"
+    pEq = "hEq(S(x),S(y))=hEq(x,y);hEq(Z,Z)=True;hEq(x,y)=False;"
 
     def test101Ctr(self):
         "Ctr"
@@ -130,6 +151,22 @@ class BasicScpTest(unittest.TestCase):
         self.buildPrTreeOK(
            self.pAdd, "gAdd(gAdd(a,b),c)",
             "{0:(gAdd(gAdd(a,b),c),None,None,[1,2]),1:(gAdd(b,c),a=Z,0,[3,4]),3:(c,b=Z,1,[]),4:(S(gAdd(v101,c)),b=S(v101),1,[5]),5:(gAdd(v101,c),None,4,[]),2:(gAdd(S(gAdd(v100,b)),c),a=S(v100),0,[6]),6:(S(gAdd(gAdd(v100,b),c)),None,2,[7]),7:(gAdd(gAdd(v100,b),c),None,6,[])}")
+
+    # def testSolver1(self):
+    #     sys = [("A(a)", "A(x)")]
+    #     self.solve(sys)
+    
+    # def testSolver2(self):
+    #     sys = [("b", "B(A(y),Z)")]
+    #     self.solve(sys)
+    
+    # def testSolver3(self):
+    #     sys = [("A(a)", "A(x)"), ("a", "A(z)"), ("b", "B(A(y),Z)"), ("A(a)", "w")]
+    #     self.solve(sys)
+
+    def test401Eq(self):
+        tree = self.buildPrTree(pProg(self.pEq), pExp("hEq(S(a),b)"))
+        print("test401Eq = %s" % tree)
 
 #testAPTVar = testBPT1Adv "" "x"
 #testAPTCtr = testBPT1Adv "" "S(Z)"

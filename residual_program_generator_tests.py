@@ -16,8 +16,11 @@ from residual_program_generator import *
 class ResidualProgramGenerator_Tests(unittest.TestCase):
 
     # Sample programs
-    pAdd = "gAdd(Z,y)=y;gAdd(S(x),y)=S(gAdd(x,y));"
-    pAddAcc = "gAddAcc(Z,y)=y;gAddAcc(S(x),y)=gAddAcc(x,S(y));"
+    pAdd = "hAdd(Z,y)=y;hAdd(S(x),y)=S(hAdd(x,y));"
+    gAdd = "gAdd(Z,y)=y;gAdd(S(x),y)=S(gAdd(x,y));"
+
+    pAddAcc = "hAddAcc(Z,y)=y;hAddAcc(S(x),y)=hAddAcc(x,S(y));"
+    pEq = "hEq(S(x),S(y))=hEq(x,y);hEq(Z,Z)=True;hEq(S(x),Z)=False;hEq(Z,S(y))=False;"
 
 #---- Basic supercompiler
 
@@ -44,28 +47,28 @@ class ResidualProgramGenerator_Tests(unittest.TestCase):
         "BAddAB"
         self.basicScpOK(
                 self.pAdd,
-                "gAdd(a, b)",
-                "gAdd1(Z,b)=b;gAdd1(S(v100),b)=S(gAdd1(v100,b));$gAdd1(a,b)")
+                "hAdd(a, b)",
+                "hAdd1(Z,b)=b;hAdd1(S(v100),b)=S(hAdd1(v100,b));$hAdd1(a,b)")
 
     def test104BAddAdd(self):
         "BAddAdd"
         self.basicScpOK(
                 self.pAdd,
-                # gAdd(gAdd(S(Z),Z), Z) -> gAdd(S(gAdd(Z, Z)), Z) -> S(gAdd(gAdd(Z,Z), Z)) -> S(gAdd(Z, Z)) -> S(Z)
-                # '''gAdd2(Z,c)=c;
-                #    gAdd2(S(v101),c)=S(gAdd2(v101,c));
-                #    gAdd1(Z,b,c)=gAdd2(b,c);
-                #    gAdd1(S(v100),b,c)=S(gAdd1(v100,b,c));
-                #    $gAdd1(a,b,c)'''
-                "gAdd(gAdd(a,b),c)",
-                "gAdd2(Z,c)=c;gAdd2(S(v101),c)=S(gAdd2(v101,c));gAdd1(Z,b,c)=gAdd2(b,c);gAdd1(S(v100),b,c)=S(gAdd1(v100,b,c));$gAdd1(a,b,c)")
+                # hAdd(hAdd(S(Z),Z), Z) -> hAdd(S(hAdd(Z, Z)), Z) -> S(hAdd(hAdd(Z,Z), Z)) -> S(hAdd(Z, Z)) -> S(Z)
+                # '''hAdd2(Z,c)=c;
+                #    hAdd2(S(v101),c)=S(hAdd2(v101,c));
+                #    hAdd1(Z,b,c)=hAdd2(b,c);
+                #    hAdd1(S(v100),b,c)=S(hAdd1(v100,b,c));
+                #    $hAdd1(a,b,c)'''
+                "hAdd(hAdd(a,b),c)",
+                "hAdd2(Z,c)=c;hAdd2(S(v101),c)=S(hAdd2(v101,c));hAdd1(Z,b,c)=hAdd2(b,c);hAdd1(S(v100),b,c)=S(hAdd1(v100,b,c));$hAdd1(a,b,c)")
 
     def test105BAddAccAB(self):
         "BAddAccAB"
         self.basicScpOK(
                 self.pAddAcc,
-                "gAddAcc(a, b)",
-                "gAddAcc1(Z,b)=b;gAddAcc1(S(v100),b)=gAddAcc1(v100,S(b));$gAddAcc1(a,b)")
+                "hAddAcc(a, b)",
+                "hAddAcc1(Z,b)=b;hAddAcc1(S(v100),b)=hAddAcc1(v100,S(b));$hAddAcc1(a,b)")
 
 #---- Advanced supercompiler
 
@@ -84,40 +87,40 @@ class ResidualProgramGenerator_Tests(unittest.TestCase):
         "AdvAddAB"
         self.advancedScpOK(
            self.pAdd,
-           "gAdd(a, b)",
-           "gAdd1(Z,b)=b;gAdd1(S(v100),b)=S(gAdd1(v100,b));$gAdd1(a,b)")
+           "hAdd(a,b)",
+           "hAdd1(Z,b)=b;hAdd1(S(v100),b)=S(hAdd1(v100,b));$hAdd1(a,b)")
 
     def test202AdvAddAA(self):
         "AdvAddAA"
         self.advancedScpOK(
            self.pAdd,
-           "gAdd(a, a)",
-           "gAdd1(Z,v103)=v103;gAdd1(S(v104),v103)=S(gAdd1(v104,v103));$gAdd1(a,a)")
+           "hAdd(a, a)",
+           "hAdd1(Z,v103)=v103;hAdd1(S(v104),v103)=S(hAdd1(v104,v103));$hAdd1(a,a)")
 
     def test203AdvAddAdd(self):
         "AdvAddAdd"
         self.advancedScpOK(
            self.pAdd,
-           "gAdd(gAdd(a,b),c)",
-           "gAdd2(Z,c)=c;gAdd2(S(v101),c)=S(gAdd2(v101,c));gAdd1(Z,b,c)=gAdd2(b,c);gAdd1(S(v100),b,c)=S(gAdd1(v100,b,c));$gAdd1(a,b,c)")
+           "hAdd(hAdd(a,b),c)",
+           "hAdd2(Z,c)=c;hAdd2(S(v101),c)=S(hAdd2(v101,c));hAdd1(Z,b,c)=hAdd2(b,c);hAdd1(S(v100),b,c)=S(hAdd1(v100,b,c));$hAdd1(a,b,c)")
 
     def test204AdvAddAccAB(self):
         "AdvAddAccAB"
         self.advancedScpOK(
            self.pAddAcc,
-           "gAddAcc(a, b)",
-           "gAddAcc1(Z,b)=b;gAddAcc1(S(v100),b)=gAddAcc1(v100,S(b));$gAddAcc1(a,b)")
+           "hAddAcc(a, b)",
+           "hAddAcc1(Z,b)=b;hAddAcc1(S(v100),b)=hAddAcc1(v100,S(b));$hAddAcc1(a,b)")
 
     def test205AdvAddAccAA(self):
         "AdvAddAccAB"
         self.advancedScpOK(
            self.pAddAcc,
-           "gAddAcc(a, a)",
-           "gAddAcc1(Z,v103)=v103;gAddAcc1(S(v104),v103)=gAddAcc1(v104,S(v103));$gAddAcc1(a,a)")
+           "hAddAcc(a, a)",
+           "hAddAcc1(Z,v103)=v103;hAddAcc1(S(v104),v103)=hAddAcc1(v104,S(v103));$hAddAcc1(a,a)")
 
     def test206AdvAddAccAddAcc(self):
         "AdvAddAccAddAcc"
         self.advancedScpOK(
            self.pAddAcc,
-           "gAddAcc(gAddAcc(a,b),c)",
-           "gAddAcc2(Z,c)=c;gAddAcc2(S(v101),c)=gAddAcc2(v101,S(c));gAddAcc1(Z,b,c)=gAddAcc2(b,c);gAddAcc1(S(v100),b,c)=gAddAcc1(v100,S(b),c);$gAddAcc1(a,b,c)")
+           "hAddAcc(hAddAcc(a,b),c)",
+           "hAddAcc2(Z,c)=c;hAddAcc2(S(v101),c)=hAddAcc2(v101,S(c));hAddAcc1(Z,b,c)=hAddAcc2(b,c);hAddAcc1(S(v100),b,c)=hAddAcc1(v100,S(b),c);$hAddAcc1(a,b,c)")
