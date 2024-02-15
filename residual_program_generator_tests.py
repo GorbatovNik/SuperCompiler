@@ -131,5 +131,11 @@ class ResidualProgramGenerator_Tests(unittest.TestCase):
     def test207AdvEq(self):
         self.advancedScpOK(
             self.pEq,
-            "hEq(S(a),a)",
+            "hEq(S(a),b)",
             "hEq2(S(v108),S(v109))=hEq2(v108,v109);hEq2(Z,Z)=True;hEq2(S(v110),Z)=False;hEq2(Z,S(v111))=False;hEq1(a,S(v102))=hEq2(a,v102);hEq1(a,Z)=False;$hEq1(a,b)")
+        
+    def test208AdvEq(self):
+        self.advancedScpOK(
+            self.pEq,
+            "hEq(S(a),a)",
+            "hEq1(S(v102))=hEq1(v102);hEq1(Z)=False;$hEq1(a)")
