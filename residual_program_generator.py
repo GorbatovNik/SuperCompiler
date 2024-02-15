@@ -23,6 +23,7 @@ class ResidualProgramGenerator(object):
     def genExp(self, beta):
         alpha = beta.funcAncestor()
         exp = beta.exp
+        print(exp)
         if not alpha:
             if exp.isVar():
                return exp
@@ -88,7 +89,7 @@ class ResidualProgramGenerator(object):
         params = exp.vars()
         print(exp)
         print(["%s" % ch for ch in beta.children])
-        if self.tree.isFuncNode(beta):
+        if self.isVarTest(beta):
             (name1, vs1) = self.getFGSig("h", beta, name, params)
             bodies = self.genExpList(beta.children)
             contrs = self.getChContr(exp, beta.children)

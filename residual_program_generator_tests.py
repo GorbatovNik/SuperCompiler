@@ -12,6 +12,7 @@ from sll_parser import pExp, pProg
 from basic_process_tree_builder import *
 from advanced_process_tree_builder import *
 from residual_program_generator import *
+from utils import *
 
 class ResidualProgramGenerator_Tests(unittest.TestCase):
 
@@ -27,6 +28,7 @@ class ResidualProgramGenerator_Tests(unittest.TestCase):
     def runBasicScp(self, prog, e):
         nameGen = NameGen("v", 100)
         tree = buildBasicProcessTree(nameGen, 100, prog, e)
+        print(tree)
         res = ResidualProgramGenerator(tree).genResidualProgram()
         return res
 
@@ -75,6 +77,7 @@ class ResidualProgramGenerator_Tests(unittest.TestCase):
     def runAdvancedScp(self, prog, e):
         nameGen = NameGen("v", 100)
         tree = buildAdvancedProcessTree(nameGen, 100, prog, e)
+        print(tree)
         res = ResidualProgramGenerator(tree).genResidualProgram()
         return res
 
@@ -88,39 +91,45 @@ class ResidualProgramGenerator_Tests(unittest.TestCase):
         self.advancedScpOK(
            self.pAdd,
            "hAdd(a,b)",
-           "hAdd1(Z,b)=b;hAdd1(S(v100),b)=S(hAdd1(v100,b));$hAdd1(a,b)")
+           "hAdd1(Z,b)=b;hAdd1(S(v101),b)=S(hAdd1(v101,b));$hAdd1(a,b)")
 
     def test202AdvAddAA(self):
         "AdvAddAA"
         self.advancedScpOK(
            self.pAdd,
            "hAdd(a, a)",
-           "hAdd1(Z,v103)=v103;hAdd1(S(v104),v103)=S(hAdd1(v104,v103));$hAdd1(a,a)")
+           "hAdd1(Z,v105)=v105;hAdd1(S(v107),v105)=S(hAdd1(v107,v105));$hAdd1(a,a)")
 
     def test203AdvAddAdd(self):
         "AdvAddAdd"
         self.advancedScpOK(
            self.pAdd,
            "hAdd(hAdd(a,b),c)",
-           "hAdd2(Z,c)=c;hAdd2(S(v101),c)=S(hAdd2(v101,c));hAdd1(Z,b,c)=hAdd2(b,c);hAdd1(S(v100),b,c)=S(hAdd1(v100,b,c));$hAdd1(a,b,c)")
+           "hAdd2(Z,c)=c;hAdd2(S(v103),c)=S(hAdd2(v103,c));hAdd1(Z,b,c)=hAdd2(b,c);hAdd1(S(v101),b,c)=S(hAdd1(v101,b,c));$hAdd1(a,b,c)")
 
     def test204AdvAddAccAB(self):
         "AdvAddAccAB"
         self.advancedScpOK(
            self.pAddAcc,
            "hAddAcc(a, b)",
-           "hAddAcc1(Z,b)=b;hAddAcc1(S(v100),b)=hAddAcc1(v100,S(b));$hAddAcc1(a,b)")
+           "hAddAcc1(Z,b)=b;hAddAcc1(S(v101),b)=hAddAcc1(v101,S(b));$hAddAcc1(a,b)")
 
     def test205AdvAddAccAA(self):
         "AdvAddAccAB"
         self.advancedScpOK(
            self.pAddAcc,
            "hAddAcc(a, a)",
-           "hAddAcc1(Z,v103)=v103;hAddAcc1(S(v104),v103)=hAddAcc1(v104,S(v103));$hAddAcc1(a,a)")
+           "hAddAcc1(Z,v105)=v105;hAddAcc1(S(v107),v105)=hAddAcc1(v107,S(v105));$hAddAcc1(a,a)")
 
     def test206AdvAddAccAddAcc(self):
         "AdvAddAccAddAcc"
         self.advancedScpOK(
            self.pAddAcc,
            "hAddAcc(hAddAcc(a,b),c)",
-           "hAddAcc2(Z,c)=c;hAddAcc2(S(v101),c)=hAddAcc2(v101,S(c));hAddAcc1(Z,b,c)=hAddAcc2(b,c);hAddAcc1(S(v100),b,c)=hAddAcc1(v100,S(b),c);$hAddAcc1(a,b,c)")
+           "hAddAcc2(Z,c)=c;hAddAcc2(S(v103),c)=hAddAcc2(v103,S(c));hAddAcc1(Z,b,c)=hAddAcc2(b,c);hAddAcc1(S(v101),b,c)=hAddAcc1(v101,S(b),c);$hAddAcc1(a,b,c)")
+        
+    def test207AdvEq(self):
+        self.advancedScpOK(
+            self.pEq,
+            "hEq(S(a),a)",
+            "hEq2(S(v108),S(v109))=hEq2(v108,v109);hEq2(Z,Z)=True;hEq2(S(v110),Z)=False;hEq2(Z,S(v111))=False;hEq1(a,S(v102))=hEq2(a,v102);hEq1(a,Z)=False;$hEq1(a,b)")

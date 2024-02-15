@@ -40,8 +40,16 @@ class Node(object):
 
     def __str__(self):
         children_s = ",".join(["%s" % n.nodeId for n in self.children])
+        contr = None
+        if isinstance(self.contr, Contraction):
+            contr = str(self.contr)
+        elif self.contr is not None:
+            contr = "{"
+            for key,value in self.contr.items():
+                contr += f"\'{key}\': " + str(value) +", "
+            contr += "}"
         return "%s:(%s,%s,%s,[%s])" % (self.nodeId, self.exp,
-                                     self.contr, showNodeId(self.parent),
+                                     contr, showNodeId(self.parent),
                                      children_s)
 
     def ancestors(self):

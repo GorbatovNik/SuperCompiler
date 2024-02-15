@@ -57,10 +57,10 @@ class Solver:
             print(f"new subst: {subst}")
             self.subst.update(subst)
             newCntr = dict([(l.vname, r)])
-            for cntr in self.contractions.values():
-                cntr = cntr.applySubst(newCntr)
-            for subst in self.subst.values():
-                subst = subst.applySubst(newCntr)
+            for key in self.contractions.keys():
+                self.contractions[key] = self.contractions[key].applySubst(newCntr)
+            for key in self.subst.keys():
+                self.subst[key] = self.subst[key].applySubst(newCntr)
             self.contractions[l.vname] = r
         
         elif l.isCall():
@@ -132,12 +132,17 @@ class DrivingEngine(object):
             rules = self.hRules[e.name]
             for rule in rules:
                 solver = Solver(self, self.nameGen)
-                for earg, rarg in zip(e.args, rule.patternList):
-                    solver_branches = solver.addEquation(earg, rarg)
+                for k, (earg, rarg) in enumerate(zip(e.args, rule.patternList)):
+                    solver.addEquation(earg, rarg)
+                    solver_branches = solver.extraDriving
                     if solver_branches:
                         if checkContractionNeed:
                             return True
-                        branches = [(e.applySubst(c), c) for (_, c) in solver_branches]
+                        branches = []
+                        for (subexp, c) in solver_branches:
+                            newexp = e.applySubst(c)
+                            newexp.args[k] = subexp
+                            branches.append((newexp, c))
                         return branches 
                 if solver.isConsistent():
                     res.append((rule.body.applySubst(solver.subst), solver.contractions))
