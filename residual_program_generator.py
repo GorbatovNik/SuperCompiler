@@ -18,7 +18,7 @@ class ResidualProgramGenerator(object):
 
     def genResidualProgram(self):
         resExp = self.genExp(self.tree.root)
-        return (Program(self.rules), resExp)
+        return (Program(self.rules, ), resExp)
 
     def genExp(self, beta):
         alpha = beta.funcAncestor()
@@ -67,7 +67,7 @@ class ResidualProgramGenerator(object):
         if sig:
             return sig
         else:
-            name1 = "%s%s%s" % (prefix, name[1:], len(self.sigs) + 1)
+            name1 = "%s%s%s" % (prefix, name[len(prefix):], len(self.sigs) + 1)
             sig1 = (name1, vs)
             self.sigs[beta] = sig1
             return sig1
@@ -90,7 +90,7 @@ class ResidualProgramGenerator(object):
         print(exp)
         print(["%s" % ch for ch in beta.children])
         if self.isVarTest(beta):
-            (name1, vs1) = self.getFGSig("h", beta, name, params)
+            (name1, vs1) = self.getFGSig("", beta, name, params)
             bodies = self.genExpList(beta.children)
             contrs = self.getChContr(exp, beta.children)
             hcall = HCall(name1, [Var(param) for param in params])

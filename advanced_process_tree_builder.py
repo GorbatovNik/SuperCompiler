@@ -26,12 +26,11 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
         self.tree.replaceSubtree(alpha, letExp)
 
     def split(self, beta):
-        assert False
         exp = beta.exp
         args = exp.args
         names1 = self.nameGen.freshNameList(len(args))
         args1 = [Var(x) for x in names1]
-        letExp = Let(beta.e.cloneFunctor(args1), list(zip(names1, args)))
+        letExp = Let(beta.exp.cloneFunctor(args1), list(zip(names1, args)))
         self.tree.replaceSubtree(beta, letExp)
 
     def generalizeAlphaOrSplit(self, beta, alpha):

@@ -65,6 +65,7 @@ class Solver:
         
         elif l.isCall():
             self.extraDriving = self.driveEngine.drivingStep(l)
+            print()
         else:
             raise ValueError('unknown situation')
 
