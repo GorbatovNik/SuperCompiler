@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-'''
-Created on Aug 25, 2009
-
-@author: Sergei Romanenko
-'''
-
 # MSG = Most Specific Generalization
 
 from sll_language import *
@@ -69,7 +62,7 @@ class MSGBuilder(object):
     def aMergeableKeyPair(self):
         for i in list(self.subst.keys()):
             for j in list(self.subst.keys()):
-                if i < j and self.subst[i] == self.subst[j]: # включая имена переменных
+                if i < j and self.subst[i] == self.subst[j]:
                     return (i, j)
         return None               
 

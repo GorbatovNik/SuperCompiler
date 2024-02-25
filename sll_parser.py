@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-'''
-Created on Aug 14, 2009
-
-@author: Sergei Romanenko
-'''
-
 import string
 from pyparsing import Word, Optional, delimitedList, alphanums, Literal, Suppress, \
     Group, Forward, ZeroOrMore, OneOrMore, line, col, ParseException, stringEnd

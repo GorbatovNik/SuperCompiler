@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-'''
-Created on Aug 17, 2009
-
-@author: Sergei Romanenko
-'''
-
 import itertools
 
 from sll_language import *

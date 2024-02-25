@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-'''
-Created on Aug 20, 2009
-
-@author: Sergei Romanenko
-'''
-
 import unittest
 
 from sll_parser import pExp, pProg, exp

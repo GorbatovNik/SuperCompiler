@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-'''
-Created on Aug 14, 2009
-
-@author: Sergei Romanenko
-'''
-
 import unittest
 
 from pyparsing import stringEnd, ParseException

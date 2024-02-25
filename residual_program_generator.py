@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-'''
-Created on Aug 22, 2009
-
-@author: Sergei Romanenko
-'''
-
 from sll_language import *
 from algebra import *
 from process_tree import *

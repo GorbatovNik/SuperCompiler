@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-'''
-Created on Aug 18, 2009
 
-@author: Sergei Romanenko
-'''
 import unittest
 import itertools
 

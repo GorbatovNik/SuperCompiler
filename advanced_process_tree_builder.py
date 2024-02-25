@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-'''
-Created on Aug 26, 2009
-
-@author: Sergei Romanenko
-'''
-
 ### Advanced Supercompiler with homeomorphic imbedding and generalization  
 
 from basic_process_tree_builder import *
@@ -23,9 +16,11 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
         bindings = list(subst.items())
         bindings.sort()
         letExp = Let(exp, bindings)
+        print(str(self.tree))
         self.tree.replaceSubtree(alpha, letExp)
 
     def split(self, beta):
+
         exp = beta.exp
         args = exp.args
         names1 = self.nameGen.freshNameList(len(args))

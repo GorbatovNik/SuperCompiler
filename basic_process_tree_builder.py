@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-'''
-Created on Aug 20, 2009
-
-@author: Sergei Romanenko
-'''
-
 from sll_language import *
 from algebra import matchAgainst 
 from process_tree import Contraction, Node, ProcessTree

@@ -176,7 +176,7 @@ case class S(x: Any)
 
 object Main {
   def main : (Any, Any) => Any = {
-    case (a, b) => eq(S(a),b)
+    case (a, b) => eq(a,a)
   }
   def eq : (Any, Any) => Any = {
     case (S(x), S(y)) => eq(x, y)
@@ -215,7 +215,7 @@ from basic_process_tree_builder import *
 from advanced_process_tree_builder import *
 from residual_program_generator import *
 
-sll_prog, sll_task = parse_program(program_text2)
+sll_prog, sll_task = parse_program(program_text1)
 nameGen = NameGen("v", 100)
 tree = buildAdvancedProcessTree(nameGen, 100, sll_prog, sll_task)
 (resPr, resExp) = ResidualProgramGenerator(tree).genResidualProgram()
