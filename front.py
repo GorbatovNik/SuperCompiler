@@ -145,7 +145,9 @@ def generate_scala(resProg, resExp):
 		return "Any" if size == 1 else "(Any" + ", Any"*(size - 1) + ")"
 
 	def getLeftSide(patternList):
-		if len(patternList)==1:
+		if len(patternList)==0:
+			l = "()"
+		elif len(patternList)==1:
 			l = str(patternList[0])
 		else:
 			l = "(" + str(patternList[0])
@@ -155,16 +157,46 @@ def generate_scala(resProg, resExp):
 		return l
 	
 	main_vars = resExp.vars()
-	scala+="object Main {\n\tdef main : " + getAnySign(len(main_vars)) + " => Any = {\n\t\tcase " + getLeftSide(main_vars) + " => " + str(resExp) + "\n\t}\n"
+	scala+="object Main {\n  def main : " + getAnySign(len(main_vars)) + " => Any = {\n    case " + getLeftSide(main_vars) + " => " + str(resExp) + "\n  }\n"
 	
 	for func_name, rules in funcs.items():
-		scala+="\tdef " + func_name + " : " + getAnySign(len(rules[0].patternList)) + " => Any = {\n"
+		scala+="  def " + func_name + " : " + getAnySign(len(rules[0].patternList)) + " => Any = {\n"
 		for rule in rules:
-			scala+="\t\tcase " + getLeftSide(rule.patternList) + " => " + str(rule.body) + "\n"
-		scala+="\t}\n"
+			scala+="    case " + getLeftSide(rule.patternList) + " => " + str(rule.body) + "\n"
+		scala+="  }\n"
 	scala+="}\n"
 	return scala
 
+
+sum3x = """
+case class S(x: Any)
+case object Z
+
+object Main {
+  def main: Any => Any = {
+    case n => sum(S(S(S(Z))), n)
+  }
+  def sum: (Any, Any) => Any = {
+    case (x, S(n1)) => S(sum(x, n1))
+    case (x, Z) => x
+  }
+}
+"""
+
+newp = """
+case object Z
+case class S(x: Any)
+
+object Main {
+  def main : (Any, Any) => Any = {
+    case (a, b) => add(S(a), b)
+  }
+  def add :(Any, Any) => Any = {
+	case (S(a), b) => S(add(a, b))
+	case (Z, b) => b
+  }
+}
+"""
 
 # Тестирование парсера
 program_text1 = """
@@ -211,16 +243,62 @@ object Main {
   }
 }
 """
+#case x => Z // Z или S(Z)
+pt3 = """
+case object Z
+case class S(n: Any)
+
+object Main {
+  def log2 : Any => Any = {
+    case S(Z) => Z
+    case x => S(log2(half(x)))
+  }
+
+  def half : Any => Any = {
+    case S(S(x)) => S(half(x))
+    case x => Z
+  }
+
+  def main : Any => Any = {
+    case x => log2(S(S(S(S(S(S(S(S(Z)))))))))
+  }
+}
+"""
+
+pt4="""
+case object B
+case class Cons(x1 : Any, x2 : Any)
+case object C
+case object A
+case object Nil_
+object Main {
+        def main : Any => Any = {
+                case xs => fbc1(xs)
+        }
+        def fbc2 : (Any, Any) => Any = {
+                case (B, v105) => Cons(C,fbc1(v105))
+                case (v104, v105) => Cons(v104,fbc1(v105))
+        }
+        def fbc1 : Any => Any = {
+                case Cons(A,v103) => Cons(C,fbc1(v103))
+                case Cons(v104,v105) => fbc2(v104,v105)
+                case Nil_ => Nil_
+        }
+}
+"""
+
 from basic_process_tree_builder import *
 from advanced_process_tree_builder import *
 from residual_program_generator import *
 
-sll_prog, sll_task = parse_program(program_text1)
+sll_prog, sll_task = parse_program(pt4)
 nameGen = NameGen("v", 100)
 tree = buildAdvancedProcessTree(nameGen, 100, sll_prog, sll_task)
-(resPr, resExp) = ResidualProgramGenerator(tree).genResidualProgram()
+# (resPr, resExp) = ResidualProgramGenerator(tree).genResidualProgram()
 print(tree)
-print(resPr)
-print(resExp)
-print(generate_scala(resPr, resExp))
+dot = tree.convertToDOT()
+dot.render('output_graph', view=True)
+# print(resPr)
+# print(resExp)
+# print(generate_scala(resPr, resExp))
 # print(str(parsed_program))

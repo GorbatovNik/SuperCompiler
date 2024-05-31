@@ -22,9 +22,15 @@ class Solver:
             self.subst[r.vname] = l
         elif l.isCtr() and r.isCtr():
             if l.name == r.name:
-                for larg, rarg in zip(l.args, r.args):
+                for k, (larg, rarg) in enumerate(zip(l.args, r.args)):
                     self.addEquation(larg, rarg)
                     if self.extraDriving:
+                        branches = []
+                        for (subexp, c, drivingFuncName) in self.extraDriving:
+                            newexp = l.applySubst(c)
+                            newexp.args[k] = subexp
+                            branches.append((newexp, c, drivingFuncName))
+                        self.extraDriving = branches
                         return
             else:
                 self.isConsistentBool = False
@@ -44,10 +50,7 @@ class Solver:
                 return result
 
             r = copy.deepcopy(r)
-            print(f"\nr before changing {r}")
             subst = dict(changeVarsToNewParams(r))
-            print(f"r after changing {r}")
-            print(f"new subst: {subst}")
             self.subst.update(subst)
             newCntr = dict([(l.vname, r)])
             for key in self.contractions.keys():
@@ -58,7 +61,7 @@ class Solver:
         
         elif l.isCall():
             self.extraDriving = self.driveEngine.drivingStep(l)
-            print()
+            # print()
         else:
             raise ValueError('unknown situation')
 
@@ -97,30 +100,7 @@ class DrivingEngine(object):
 # возвращает список выражений, на которые ветвится выражение e
     def drivingStep(self, e, checkContractionNeed=False):
         if e.isCtr():
-            return False if checkContractionNeed else [(arg, None) for arg in e.args]
-        elif e.isFCall():
-            rule = self.fRule[e.name]
-            p2a = dict(list(zip(rule.params, e.args)))
-            body = rule.body.applySubst(p2a)
-            return False if checkContractionNeed else [(body, None)]
-        elif e.isGCall():
-            arg0 = e.args[0]
-            args = e.args[1:]
-            if arg0.isCtr():
-                cname = arg0.name
-                cargs = arg0.args
-                rule = self.gcRule[(e.name, cname)]
-                p2a = dict()
-                p2a.update(list(zip(rule.cparams, cargs)))
-                p2a.update(list(zip(rule.params, args)))
-                body = rule.body.applySubst(p2a)
-                return False if checkContractionNeed else [(body, None)]
-            elif arg0.isVar():
-                rules = self.gRules[e.name]
-                return True if checkContractionNeed else [ self.driveBranch(e, rule) for rule in rules ]
-            else:
-                branchesOrContrationNeed = self.drivingStep(arg0, checkContractionNeed)
-                return branchesOrContrationNeed if checkContractionNeed else [ (GCall(e.name, [exp] + args), c) for (exp, c) in branchesOrContrationNeed]
+            return False if checkContractionNeed else [(arg, None, None) for arg in e.args]
         elif e.isHCall():
             res = []
             rules = self.hRules[e.name]
@@ -131,15 +111,16 @@ class DrivingEngine(object):
                     solver_branches = solver.extraDriving
                     if solver_branches:
                         if checkContractionNeed:
-                            return True
+                            return not(len(solver_branches)==1 and not solver_branches[0][1]) # solver_branches[0][1] is contraction
                         branches = []
-                        for (subexp, c) in solver_branches:
+                        for (subexp, c, drivingFuncName) in solver_branches:
                             newexp = e.applySubst(c)
                             newexp.args[k] = subexp
-                            branches.append((newexp, c))
+                            branches.append((newexp, c, drivingFuncName))
                         return branches 
                 if solver.isConsistent():
-                    res.append((rule.body.applySubst(solver.subst), solver.contractions))
+                    res.append((rule.body.applySubst(solver.subst), solver.contractions, e.name))
+                    # print(f"({str(res[-1][0])}, {str(res[-1][1])}, {str(res[-1][2])}")
                     if not solver.contractions:
                         if checkContractionNeed:
                             return len(res)>1
@@ -208,7 +189,7 @@ class BasicProcessTreeBuilder(object):
                 break
             k -= 1
             beta = self.tree.findUnprocessedNode()
-            print(beta)
+            # print(beta)
             if not beta:
                 break
             self.buildStep(beta)

@@ -16,7 +16,7 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
         bindings = list(subst.items())
         bindings.sort()
         letExp = Let(exp, bindings)
-        print(str(self.tree))
+        # print(str(self.tree))
         self.tree.replaceSubtree(alpha, letExp)
 
     def split(self, beta):
@@ -29,32 +29,29 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
         self.tree.replaceSubtree(beta, letExp)
 
     def generalizeAlphaOrSplit(self, beta, alpha):
+        # print('before generalizing:--------\n ' + str(self.tree) +"\n--------------------")
         gen = self.msgBuilder.build(alpha.exp, beta.exp)
         if gen.exp.isVar():
             self.split(beta)
         else:
             self.abstract(alpha, gen.exp, gen.substA)
 
-    def findEmbeddedAncestor(self, beta, contractionNeed):
+    def findEmbeddedAncestor(self, beta, contractionNeed, drivingFuncName):
         for alpha in beta.ancestors():
             alphaContractionNeed = bool(alpha.children[0].contr)
-            if alpha.exp.isFGHCall() and alphaContractionNeed == contractionNeed and embeddedIn(alpha.exp, beta.exp):
+            if alpha.exp.isFGHCall() and alphaContractionNeed == contractionNeed and alpha.drivingFuncName==drivingFuncName and embeddedIn(alpha.exp, beta.exp):
                 return alpha
         return None
 
     def buildStep(self, beta):
-        """
-        This method overrides the method in the basic version of
-        the process tree builder.
-        """
         alpha = beta.findMoreGeneralAncestor()
         if alpha:
             self.loopBack(beta, alpha)
         else:
             contrNeed = self.drivingEngine.drivingStep(beta.exp, checkContractionNeed=True)
-            alpha = self.findEmbeddedAncestor(beta, contrNeed)
-            if alpha:
-                print("embeding found\nbeta=%s\nalpha=%s" % (beta, alpha))
+            alpha = self.findEmbeddedAncestor(beta, contrNeed, beta.drivingFuncName)
+            if alpha and not beta.exp.isCtr():
+                # print("embeding found\nbeta=%s\nalpha=%s" % (beta, alpha))
                 self.generalizeAlphaOrSplit(beta, alpha)
             else:
                 self.expandNode(beta)

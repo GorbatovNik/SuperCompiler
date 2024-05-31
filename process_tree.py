@@ -1,5 +1,6 @@
 from sll_language import *
 from algebra import *
+from graphviz import Digraph
 
 class Contraction(object):
     def __init__(self, vname, cname, cparams):
@@ -23,13 +24,14 @@ def showNodeId(node):
 class Node(object):
     "The constructor is supposed to be called via ProcessTree#newNode only."
     
-    def __init__(self, tree, exp, contr, parent, children):
+    def __init__(self, tree, exp, contr, parent, children, drivingFuncName=None):
         "nodeId is only used for unit testing purposes"
         self.nodeId = tree.getFreshNodeId()
         self.exp = exp
         self.contr = contr
         self.parent = parent
         self.children = children
+        self.drivingFuncName = drivingFuncName
 
     def __str__(self):
         children_s = ",".join(["%s" % n.nodeId for n in self.children])
@@ -44,6 +46,18 @@ class Node(object):
         return "%s:(%s,%s,%s,[%s])" % (self.nodeId, self.exp,
                                      contr, showNodeId(self.parent),
                                      children_s)
+
+    def convertToDOT(self, dot):
+        dot.node(str(self.nodeId), str(self.exp))
+        if self.isLeaf():
+            anc = self.funcAncestor()
+            if anc:
+                dot.edge(str(self.nodeId), str(anc.nodeId), style="dashed")
+
+        if self.parent:
+            dot.edge(str(self.parent.nodeId), str(self.nodeId), label='\n'.join([str(key) + "→" + str(value) for key, value in self.contr.items()]) if self.contr is not None else "")
+        for child in self.children:
+            child.convertToDOT(dot)
 
     def ancestors(self):
         n = self.parent
@@ -104,13 +118,20 @@ class ProcessTree(object):
     def __str__(self):
         nodes_s = ",".join(["%s" % n for n in self.nodes()])
         return "{%s}" % nodes_s
+    
+    def convertToDOT(self):
+        dot = Digraph()
+        dot.node_attr.update(fontname='Consolas')
+        dot.edge_attr.update(fontname='Consolas')
+        self.root.convertToDOT(dot)
+        return dot
 
     def getFreshNodeId(self):
         self.freshNodeId += 1
         return self.freshNodeId
 
-    def newNode(self, exp, contr, parent, children):
-        return Node(self, exp, contr, parent, children)
+    def newNode(self, exp, contr, parent, children, drivingFuncName = None):
+        return Node(self, exp, contr, parent, children, drivingFuncName=drivingFuncName)
 
     def nodes(self):
         for n in self.root.subtreeNodes():
@@ -134,7 +155,7 @@ class ProcessTree(object):
         return False
 
     def addChildren(self, node, branches):
-        children = [self.newNode(exp, contr, node, []) for (exp, contr) in branches]
+        children = [self.newNode(exp, contr, node, [], drivingFuncName=drivingFuncName) for (exp, contr, drivingFuncName) in branches]
         node.children += children
 
     def replaceSubtree(self, node, exp):

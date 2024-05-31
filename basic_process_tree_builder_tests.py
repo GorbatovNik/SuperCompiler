@@ -41,13 +41,13 @@ class BasicScpTest(unittest.TestCase):
             lexp, rexp = self.parse(l)[0], self.parse(r)[0]
             solver.addEquation(lexp, rexp)
        
-        print(f'\n============\nsystem:')
-        for l, r in system:
-            print(f'{l} = {r}')
-        print(f'------------\nconsistent={solver.isConsistent()}\ncontrations:')
-        [print(f'{k} -> {v}') for k, v in solver.contractions.items()]
-        print('substs:')
-        [print(f'{v} <- {k}') for k, v in solver.subst.items()]
+        # print(f'\n============\nsystem:')
+        # for l, r in system:
+        #     print(f'{l} = {r}')
+        # print(f'------------\nconsistent={solver.isConsistent()}\ncontrations:')
+        # [print(f'{k} -> {v}') for k, v in solver.contractions.items()]
+        # print('substs:')
+        # [print(f'{v} <- {k}') for k, v in solver.subst.items()]
 
     pAdd = "gAdd(Z,y)=y;gAdd(S(x),y)=S(gAdd(x,y));"
     pAddAcc = "gAddAcc(Z,y)=y;gAddAcc(S(x),y)=gAddAcc(x,S(y));"
@@ -159,7 +159,7 @@ class BasicScpTest(unittest.TestCase):
 
     def test401Eq(self):
         tree = self.buildPrTree(pProg(self.pEq), pExp("hEq(S(a),b)"))
-        print("test401Eq = %s" % tree)
+        # print("test401Eq = %s" % tree)
 
 #testAPTVar = testBPT1Adv "" "x"
 #testAPTCtr = testBPT1Adv "" "S(Z)"
