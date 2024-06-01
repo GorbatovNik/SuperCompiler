@@ -24,7 +24,7 @@ def showNodeId(node):
 class Node(object):
     "The constructor is supposed to be called via ProcessTree#newNode only."
     
-    def __init__(self, tree, exp, contr, parent, children, drivingFuncName=None):
+    def __init__(self, tree, exp, contr, parent, children, drivingFuncName=None, outFormat = None):
         "nodeId is only used for unit testing purposes"
         self.nodeId = tree.getFreshNodeId()
         self.exp = exp
@@ -32,6 +32,10 @@ class Node(object):
         self.parent = parent
         self.children = children
         self.drivingFuncName = drivingFuncName
+        self.outFormat = outFormat
+        self.isLast = False
+        if outFormat is None:
+            self.outFormat = OutFormat(self, self)
 
     def __str__(self):
         children_s = ",".join(["%s" % n.nodeId for n in self.children])
@@ -43,21 +47,26 @@ class Node(object):
             for key,value in self.contr.items():
                 contr += f"\'{key}\': " + str(value) +", "
             contr += "}"
-        return "%s:(%s,%s,%s,[%s])" % (self.nodeId, self.exp,
-                                     contr, showNodeId(self.parent),
+        return "%s:(%s,%s,%s,%s[%s])" % (self.nodeId, self.exp,
+                                     contr, showNodeId(self.parent), self.outFormat.exp,
                                      children_s)
 
-    def convertToDOT(self, dot):
-        dot.node(str(self.nodeId), str(self.exp))
+    def convertToDOT(self, dot, parentEdgeLabel= None):
+        color = "blue" if self.isLast else "black"
+        dot.node(str(self.nodeId), "<(" + str(self.exp) + "):" + str(self.outFormat.exp) + "<br/>DFN = " + str(self.drivingFuncName) + "<br/>exp_type = " + str(type(self.exp).__name__) + ">", color = color)
         if self.isLeaf():
             anc = self.funcAncestor()
             if anc:
                 dot.edge(str(self.nodeId), str(anc.nodeId), style="dashed")
 
         if self.parent:
-            dot.edge(str(self.parent.nodeId), str(self.nodeId), label='\n'.join([str(key) + "→" + str(value) for key, value in self.contr.items()]) if self.contr is not None else "")
-        for child in self.children:
-            child.convertToDOT(dot)
+            dot.edge(str(self.parent.nodeId), str(self.nodeId), label=parentEdgeLabel)
+        for i, child in enumerate(self.children):
+            if self.exp.isLet():
+                label = "in" if i==0 else "let"
+            else:
+                label = ('\n'.join([str(key) + "→" + str(value) for key, value in child.contr.items()])) if child.contr is not None else ""
+            child.convertToDOT(dot, label)
 
     def ancestors(self):
         n = self.parent
@@ -121,8 +130,8 @@ class ProcessTree(object):
     
     def convertToDOT(self):
         dot = Digraph()
-        dot.node_attr.update(fontname='Consolas')
-        dot.edge_attr.update(fontname='Consolas')
+        dot.node_attr.update(fontname='DejaVu Sans Mono')
+        dot.edge_attr.update(fontname='DejaVu Sans Mono')
         self.root.convertToDOT(dot)
         return dot
 
@@ -130,8 +139,8 @@ class ProcessTree(object):
         self.freshNodeId += 1
         return self.freshNodeId
 
-    def newNode(self, exp, contr, parent, children, drivingFuncName = None):
-        return Node(self, exp, contr, parent, children, drivingFuncName=drivingFuncName)
+    def newNode(self, exp, contr, parent, children, drivingFuncName = None, outFormat = None):
+        return Node(self, exp, contr, parent, children, drivingFuncName=drivingFuncName, outFormat = None)
 
     def nodes(self):
         for n in self.root.subtreeNodes():

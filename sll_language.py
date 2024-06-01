@@ -23,6 +23,8 @@ class Exp(object):
         return self.isFCall() or self.isGCall() or self.isHCall()
     def isLet(self):
         return False
+    def isStackBottom(self):
+        return False
     def hasTheSameFunctorAs(self, other):
         return False
 
@@ -162,6 +164,22 @@ class HRule(object):
         patterns_s = ",".join([str(pattern) for pattern in self.patternList])
         body_s = "%s" % self.body
         return self.name + "(" + patterns_s + ")=" + body_s + ";"
+
+class StackBottom(Exp):
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return "⊥"
+    
+    def isStackBottom(self):
+        return True
+    
+class OutFormat(object):
+    def __init__(self, node, root, exp=StackBottom()):
+        self.exp = exp
+        self.root = root
+        self.node = node
 
 class Program(object):
     def __init__(self, rules):

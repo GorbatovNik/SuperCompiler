@@ -182,6 +182,20 @@ object Main {
   }
 }
 """
+cumsum3x = """
+case class S(x: Any)
+case object Z
+
+object Main {
+  def main: Any => Any = {
+    case x => sum(S(x), Z)
+  }
+  def sum: (Any, Any) => Any = {
+    case (S(x), y) => S(sum(x, S(y)))
+    case (Z, y) => y
+  }
+}
+"""
 
 newp = """
 case object Z
@@ -218,7 +232,7 @@ object Main {
   }
 }
 """
-program_text2 = """
+fac = """
 case object A
 case object B
 case object C
@@ -291,13 +305,14 @@ from basic_process_tree_builder import *
 from advanced_process_tree_builder import *
 from residual_program_generator import *
 
-sll_prog, sll_task = parse_program(pt4)
+sll_prog, sll_task = parse_program(cumsum3x)
 nameGen = NameGen("v", 100)
 tree = buildAdvancedProcessTree(nameGen, 100, sll_prog, sll_task)
 # (resPr, resExp) = ResidualProgramGenerator(tree).genResidualProgram()
 print(tree)
 dot = tree.convertToDOT()
 dot.render('output_graph', view=True)
+# dot.render("out.png", format='png')
 # print(resPr)
 # print(resExp)
 # print(generate_scala(resPr, resExp))

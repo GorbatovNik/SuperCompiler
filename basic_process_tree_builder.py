@@ -98,7 +98,7 @@ class DrivingEngine(object):
 # e : Exp (Var, Call, Let, Ctr)
 
 # возвращает список выражений, на которые ветвится выражение e
-    def drivingStep(self, e, checkContractionNeed=False):
+    def drivingStep(self, e, checkContractionNeed=False, node=None):
         if e.isCtr():
             return False if checkContractionNeed else [(arg, None, None) for arg in e.args]
         elif e.isHCall():
@@ -127,7 +127,7 @@ class DrivingEngine(object):
                         return res
             return len(res)>0 if checkContractionNeed else res
         elif e.isLet():
-            return False if checkContractionNeed else [(e.body, None)] + [(exp, None) for (vn, exp) in e.bindings]
+            return False if checkContractionNeed else [(e.body, None, node.drivingFuncName)] + [(exp, None, None) for (vn, exp) in e.bindings]
         else:
             raise ValueError("Unknown expression type")
 
@@ -156,17 +156,27 @@ class BasicProcessTreeBuilder(object):
     # (modulo variable names).
 
     def loopBack(self, beta, alpha):
+        beta.isLast = True
+        alpha.isLast = True
+        dot = self.tree.convertToDOT()
+        dot.render("loop found", view=True)
+        beta.isLast = False
+        alpha.isLast = False
         subst = matchAgainst(alpha.exp, beta.exp)
         bindings = list(subst.items())
         bindings.sort()
         letExp = Let(alpha.exp, bindings)
         self.tree.replaceSubtree(beta, letExp)
+        beta.isLast = True
+        dot = self.tree.convertToDOT()
+        dot.render("loop managed", view=True)
+        beta.isLast = False
 
     # This function applies a driving step to the node's expression,
     # and, in general, adds children to the node.
 
     def expandNode(self, beta):
-        branches = self.drivingEngine.drivingStep(beta.exp)
+        branches = self.drivingEngine.drivingStep(beta.exp, False, beta)
         self.tree.addChildren(beta, branches)
 
     # Basic supercompiler process tree builder
