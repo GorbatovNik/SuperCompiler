@@ -27,6 +27,24 @@ class MSGBuilder(object):
         self.subst = None
         self.noProgress = None
 
+    # def buildFmt(self, exp, fmt):
+    #     # def hasStackBottom(e):
+    #     #     if e.isStackBottom():
+    #     #         return True
+    #     #     elif e.isCtr():
+    #     #         for a in e.args:
+    #     #             if hasStackBottom(a):
+    #     #                 return True
+    #     #     return False
+
+    #     if fmt.isStackBottom():
+    #         # return StackBottom() if hasStackBottom(exp) else exp
+    #         return exp
+        
+    #     gen = self.build(exp, fmt)
+
+
+
     def build(self, e1, e2):
         vname = self.nameGen.freshName()
         self.exp = Var(vname)

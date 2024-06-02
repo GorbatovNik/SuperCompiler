@@ -27,6 +27,28 @@ class Exp(object):
         return False
     def hasTheSameFunctorAs(self, other):
         return False
+    def isPassive(self):
+        if self.isVar() or self.isStackBottom():
+            return True
+        if self.isCtr():
+            ans = True
+            for arg in self.args:
+                ans = ans and arg.isPassive()
+            return ans
+        return False
+    def changeVarsToNewParams(self, nameGen):
+        if self.isVar():
+            freshName = nameGen.freshName()
+            result = [(self.vname[:], Var(freshName))]
+            self.vname = freshName
+        elif self.isCtr():
+            result = []
+            for arg in self.args:
+                result = result + arg.changeVarsToNewParams(nameGen)
+        else:
+            raise ValueError('unexpected node in left side of rule met')
+        
+        return result
 
 class Var(Exp):
     def __init__(self, vname):
@@ -175,11 +197,16 @@ class StackBottom(Exp):
     def isStackBottom(self):
         return True
     
+import random
 class OutFormat(object):
     def __init__(self, node, root, exp=StackBottom()):
+        # if exp is None:
+            # self.exp = Var("d" + str(random.randint(0,1000)))
+        # else:
         self.exp = exp
         self.root = root
         self.node = node
+        self.vars = exp.vars()
 
 class Program(object):
     def __init__(self, rules):

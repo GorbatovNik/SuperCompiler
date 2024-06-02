@@ -35,22 +35,8 @@ class Solver:
             else:
                 self.isConsistentBool = False
         elif l.isVar():
-            def changeVarsToNewParams(e):
-                if e.isVar():
-                    freshName = self.nameGen.freshName()
-                    result = [(e.vname[:], Var(freshName))]
-                    e.vname = freshName
-                elif e.isCtr():
-                    result = []
-                    for arg in e.args:
-                        result = result + changeVarsToNewParams(arg)
-                else:
-                    raise ValueError('unexpected node in left side of rule met')
-                
-                return result
-
             r = copy.deepcopy(r)
-            subst = dict(changeVarsToNewParams(r))
+            subst = dict(r.changeVarsToNewParams(self.nameGen))
             self.subst.update(subst)
             newCntr = dict([(l.vname, r)])
             for key in self.contractions.keys():
@@ -127,21 +113,21 @@ class DrivingEngine(object):
                         return res
             return len(res)>0 if checkContractionNeed else res
         elif e.isLet():
-            return False if checkContractionNeed else [(e.body, None, node.drivingFuncName)] + [(exp, None, None) for (vn, exp) in e.bindings]
+            return False if checkContractionNeed else [(exp, None, None) for (vn, exp) in e.bindings] + [(e.body, None, node.drivingFuncName)]
         else:
             raise ValueError("Unknown expression type")
 
-    def driveBranch(self, e, rule):
-        vname = e.args[0].vname
-        cname = rule.cname
-        cparams = self.nameGen.freshNameList(len(rule.cparams))
-        params = rule.params
-        cargs = [Var(vn) for vn in cparams]
-        vname2ctr = dict([(vname, Ctr(cname, cargs))])
-        e1 = e.applySubst(vname2ctr)
-        branches = self.drivingStep(e1)
-        e2 = branches[0][0]
-        return (e2, Contraction(vname, cname, cparams))
+    # def driveBranch(self, e, rule):
+        # vname = e.args[0].vname
+        # cname = rule.cname
+        # cparams = self.nameGen.freshNameList(len(rule.cparams))
+        # params = rule.params
+        # cargs = [Var(vn) for vn in cparams]
+        # vname2ctr = dict([(vname, Ctr(cname, cargs))])
+        # e1 = e.applySubst(vname2ctr)
+        # branches = self.drivingStep(e1)
+        # e2 = branches[0][0]
+        # return (e2, Contraction(vname, cname, cparams))
 
 class BasicProcessTreeBuilder(object):
 
@@ -176,7 +162,15 @@ class BasicProcessTreeBuilder(object):
     # and, in general, adds children to the node.
 
     def expandNode(self, beta):
-        branches = self.drivingEngine.drivingStep(beta.exp, False, beta)
+        if beta.exp.isCtr():
+            e = beta.exp
+            names = self.nameGen.freshNameList(len(e.args))
+            args = [Var(x) for x in names]
+            letExp = Let(e.cloneFunctor(args), list(zip(names, e.args)))
+            self.tree.replaceSubtree(beta, letExp)
+            branches = [(exp, None, None) for (vn, exp) in letExp.bindings] + [(letExp.body, None, beta.drivingFuncName)]
+        else:        
+            branches = self.drivingEngine.drivingStep(beta.exp, False, beta)
         self.tree.addChildren(beta, branches)
 
     # Basic supercompiler process tree builder

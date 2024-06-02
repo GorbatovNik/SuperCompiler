@@ -53,7 +53,7 @@ class Node(object):
 
     def convertToDOT(self, dot, parentEdgeLabel= None):
         color = "blue" if self.isLast else "black"
-        dot.node(str(self.nodeId), "<(" + str(self.exp) + "):" + str(self.outFormat.exp) + "<br/>DFN = " + str(self.drivingFuncName) + "<br/>exp_type = " + str(type(self.exp).__name__) + ">", color = color)
+        dot.node(str(self.nodeId), "<(" + str(self.exp) + "):" + str(self.outFormat.exp) + "<br/>DFN = " + str(self.drivingFuncName) + ">", color = color)
         if self.isLeaf():
             anc = self.funcAncestor()
             if anc:
@@ -63,7 +63,7 @@ class Node(object):
             dot.edge(str(self.parent.nodeId), str(self.nodeId), label=parentEdgeLabel)
         for i, child in enumerate(self.children):
             if self.exp.isLet():
-                label = "in" if i==0 else "let"
+                label = "let" if i<len(self.children)-1 else "in"
             else:
                 label = ('\n'.join([str(key) + "→" + str(value) for key, value in child.contr.items()])) if child.contr is not None else ""
             child.convertToDOT(dot, label)
@@ -87,6 +87,8 @@ class Node(object):
                 return n
         return None
     
+    def isPassive(self):
+        return self.exp.isPassive()
 
     def isProcessed(self):
         if self.exp.isVar():
@@ -140,7 +142,7 @@ class ProcessTree(object):
         return self.freshNodeId
 
     def newNode(self, exp, contr, parent, children, drivingFuncName = None, outFormat = None):
-        return Node(self, exp, contr, parent, children, drivingFuncName=drivingFuncName, outFormat = None)
+        return Node(self, exp, contr, parent, children, drivingFuncName=drivingFuncName, outFormat=outFormat)
 
     def nodes(self):
         for n in self.root.subtreeNodes():
@@ -164,7 +166,13 @@ class ProcessTree(object):
         return False
 
     def addChildren(self, node, branches):
-        children = [self.newNode(exp, contr, node, [], drivingFuncName=drivingFuncName) for (exp, contr, drivingFuncName) in branches]
+        assert not node.exp.isCtr()
+        if node.exp.isFGHCall():
+            children = [self.newNode(exp, contr, node, [], drivingFuncName=drivingFuncName, outFormat=node.outFormat) for (exp, contr, drivingFuncName) in branches]
+        elif node.exp.isLet():
+            children = [self.newNode(exp, contr, node, [], drivingFuncName) for (exp, contr, drivingFuncName) in branches[:-1]] +\
+                       [self.newNode(branches[-1][0], branches[-1][1], node, [], branches[-1][2], node.outFormat)]
+        
         node.children += children
 
     def replaceSubtree(self, node, exp):

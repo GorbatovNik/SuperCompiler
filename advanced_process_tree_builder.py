@@ -3,6 +3,7 @@
 from basic_process_tree_builder import *
 from he import embeddedIn
 from msg import MSGBuilder
+from algebra import *
 
 class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
 
@@ -86,10 +87,101 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
 
     def manageLet(self, node):
         self.expandNode(node)
-        for i in range(1, len(node.children)):
-            self.buildRecursive(node.children[i]) # "let" branches
-        self.buildRecursive(node.children[0]) # "in" branch
+        for child in node.children[:-1]:
+            self.buildRecursive(child)
+        
     def buildRecursive(self, beta):
+        print(beta.exp)
+        if beta.isPassive():
+            if beta.outFormat.exp.isStackBottom():
+                
+                beta.isLast = True
+                dot = self.tree.convertToDOT()
+                dot.render("Hypothesis is refuted", view=True)
+                beta.isLast = False
+
+                newfmt = copy.deepcopy(beta.exp)
+                newfmt.changeVarsToNewParams(self.nameGen)
+                root = beta.outFormat.root
+                root.outFormat.exp = newfmt
+                root.children = []
+
+                root.isLast = True
+                dot = self.tree.convertToDOT()
+                dot.render("New format hypothesis", view=True)
+                root.isLast = False
+                
+                self.buildRecursive(root)
+            else:
+                mg = matchAgainst(beta.outFormat.exp, beta.exp)
+                if mg is None:
+                    gen = self.msgBuilder.build(beta.outFormat.exp, beta.exp)
+                    
+                    beta.isLast = True
+                    dot = self.tree.convertToDOT()
+                    dot.render("Hypothesis is refuted", view=True)
+                    beta.isLast = False
+
+                    root = beta.outFormat.root
+                    root.outFormat.exp = gen.exp
+                    root.children = []
+
+                    root.isLast = True
+                    dot = self.tree.convertToDOT()
+                    dot.render("New format hypothesis", view=True)
+                    root.isLast = False
+
+                    self.buildRecursive(root)
+            return
+        if beta.isProcessed() and beta.exp.isFGHCall():
+            anc = beta.funcAncestor()
+            if anc:
+                if not anc.outFormat.exp.isStackBottom():
+                    if beta.outFormat.exp.isStackBottom():
+                        beta.isLast = True
+                        anc.isLast = True
+                        dot = self.tree.convertToDOT()
+                        dot.render("Hypothesis is refuted", view=True)
+                        beta.isLast = False
+                        anc.isLast = False
+
+                        root = beta.outFormat.root
+                        root.outFormat.exp = copy.deepcopy(anc.outFormat.exp)
+                        root.children = []
+
+                        root.isLast = True
+                        dot = self.tree.convertToDOT()
+                        dot.render("New format hypothesis", view=True)
+                        root.isLast = False
+
+                        self.buildRecursive(root)
+
+                        return
+                    else:
+                        mg = matchAgainst(beta.outFormat.exp, anc.outFormat.exp)
+                        if not mg:
+                            gen = self.msgBuilder.build(beta.outFormat.exp, anc.outFormat.exp)
+
+                            beta.isLast = True
+                            anc.isLast = True
+                            dot = self.tree.convertToDOT()
+                            dot.render("Hypothesis is refuted", view=True)
+                            beta.isLast = False
+                            anc.isLast = False
+
+                            root = beta.outFormat.root
+                            root.outFormat.exp = gen.exp
+                            root.children = []
+
+                            root.isLast = True
+                            dot = self.tree.convertToDOT()
+                            dot.render("New format hypothesis", view=True)
+                            root.isLast = False
+
+                            self.buildRecursive(root)
+
+                            return
+            return
         if beta.isProcessed():
             return
         moreGenAnc = beta.findMoreGeneralAncestor()
@@ -105,7 +197,9 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
                     node = self.generalizeAlphaOrSplit(beta, alpha)
                     self.manageLet(node)
                     return
-            assert not beta.exp.isLet()
+            if beta.exp.isLet():
+                self.manageLet(node)
+                return
             self.expandNode(beta)
             for child in beta.children:
                 self.buildRecursive(child)

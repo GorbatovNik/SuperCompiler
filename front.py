@@ -258,7 +258,7 @@ object Main {
 }
 """
 #case x => Z // Z или S(Z)
-pt3 = """
+log = """
 case object Z
 case class S(n: Any)
 
@@ -305,7 +305,7 @@ from basic_process_tree_builder import *
 from advanced_process_tree_builder import *
 from residual_program_generator import *
 
-sll_prog, sll_task = parse_program(cumsum3x)
+sll_prog, sll_task = parse_program(log)
 nameGen = NameGen("v", 100)
 tree = buildAdvancedProcessTree(nameGen, 100, sll_prog, sll_task)
 # (resPr, resExp) = ResidualProgramGenerator(tree).genResidualProgram()
