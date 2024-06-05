@@ -274,7 +274,7 @@ object Main {
   }
 
   def main : Any => Any = {
-    case x => log2(S(S(S(S(S(S(S(S(Z)))))))))
+    case x => log2(S(S(S(S(Z)))))
   }
 }
 """
@@ -305,13 +305,12 @@ from basic_process_tree_builder import *
 from advanced_process_tree_builder import *
 from residual_program_generator import *
 
-sll_prog, sll_task = parse_program(log)
+sll_prog, sll_task = parse_program(sum3x)
 nameGen = NameGen("v", 100)
 tree = buildAdvancedProcessTree(nameGen, 100, sll_prog, sll_task)
 # (resPr, resExp) = ResidualProgramGenerator(tree).genResidualProgram()
-print(tree)
-dot = tree.convertToDOT()
-dot.render('output_graph', view=True)
+# print(tree)
+tree.render("graph of configurations")
 # dot.render("out.png", format='png')
 # print(resPr)
 # print(resExp)

@@ -1,6 +1,9 @@
 from sll_language import *
 from algebra import *
+from ge import *
 from graphviz import Digraph
+import shutil
+import os
 
 class Contraction(object):
     def __init__(self, vname, cname, cparams):
@@ -33,7 +36,6 @@ class Node(object):
         self.children = children
         self.drivingFuncName = drivingFuncName
         self.outFormat = outFormat
-        self.isLast = False
         if outFormat is None:
             self.outFormat = OutFormat(self, self)
 
@@ -51,23 +53,6 @@ class Node(object):
                                      contr, showNodeId(self.parent), self.outFormat.exp,
                                      children_s)
 
-    def convertToDOT(self, dot, parentEdgeLabel= None):
-        color = "blue" if self.isLast else "black"
-        dot.node(str(self.nodeId), "<(" + str(self.exp) + "):" + str(self.outFormat.exp) + "<br/>DFN = " + str(self.drivingFuncName) + ">", color = color)
-        if self.isLeaf():
-            anc = self.funcAncestor()
-            if anc:
-                dot.edge(str(self.nodeId), str(anc.nodeId), style="dashed")
-
-        if self.parent:
-            dot.edge(str(self.parent.nodeId), str(self.nodeId), label=parentEdgeLabel)
-        for i, child in enumerate(self.children):
-            if self.exp.isLet():
-                label = "let" if i<len(self.children)-1 else "in"
-            else:
-                label = ('\n'.join([str(key) + "→" + str(value) for key, value in child.contr.items()])) if child.contr is not None else ""
-            child.convertToDOT(dot, label)
-
     def ancestors(self):
         n = self.parent
         while n:
@@ -76,7 +61,7 @@ class Node(object):
 
     def funcAncestor(self):
         for n in  self.ancestors():
-            if equiv(self.exp, n.exp): # с точностью до имен переменных
+            if equiv(self.exp, n.exp) and self.exp.vars() == n.exp.vars():
                 return n
         return None
     
@@ -86,6 +71,14 @@ class Node(object):
             if n.exp.isFGHCall() and instOf(self.exp, n.exp): # с точностью до имен переменных
                 return n
         return None
+    
+    def findMoreGeneralEmbeddedAncestor(self, freshName):
+        for n in self.ancestors():
+            if n.exp.isFGHCall():
+                (C, Cz) = moreGeneralEmbeddedIn(n.exp, self.exp, freshName)
+                if C:
+                    return n, C, Cz
+        return None, None, None
     
     def isPassive(self):
         return self.exp.isPassive()
@@ -119,23 +112,61 @@ class Node(object):
             for n in child.subtreeLeaves():
                 yield n
 
+def reset_folder(folder_path):
+    shutil.rmtree(folder_path, ignore_errors=True)
+    os.makedirs(folder_path, exist_ok=True)
+
 class ProcessTree(object):
     "NB: The tree is not functional, since its nodes are updated in place."
 
     def __init__(self, exp):
         self.freshNodeId = -1
         self.root = self.newNode(exp, None, None, [])
+
+        self.tick = 1
+        reset_folder("progress")
+
+    def buildDot(self, node, dot, nodesToFocus, focusColor, parentEdgeLabel=None):
+        color = focusColor if node in nodesToFocus else "black"
+        if node.exp.isLet():
+            lbl = "<(let "
+            for (let, (vname, _)) in zip(node.children[:-1], node.exp.bindings):
+                if not let.outFormat.exp.isStackBottom() and not let.exp.isVar():
+                    lbl += f"&lt;{','.join(let.outFormat.exp.vars())}&gt;:={str(let.exp)}:{let.outFormat.exp}, "
+            if len(lbl) > 7:
+                lbl += "<br/>"
+            for (vname, exp) in node.exp.bindings:
+                lbl += f"{vname}:={str(exp)}, "
+            lbl += f"<br/>in {node.exp.body}):{node.outFormat.exp}<br/>{node.exp.type}>"
+        else:
+            lbl = "<(" + str(node.exp) + "):" + str(node.outFormat.exp) + "<br/>DFN = " + str(node.drivingFuncName) + ">"
+        dot.node(str(node.nodeId), lbl, color = color)
+        if node.isLeaf():
+            anc = node.funcAncestor()
+            if anc:
+                dot.edge(str(node.nodeId), str(anc.nodeId), style="dashed")
+
+        if node.parent:
+            dot.edge(str(node.parent.nodeId), str(node.nodeId), label=parentEdgeLabel)
+        for i, child in enumerate(node.children):
+            if node.exp.isLet():
+                label = "let" if i<len(node.children)-1 else "in"
+            else:
+                label = ('\n'.join([str(key) + "→" + str(value) for key, value in child.contr.items()])) if child.contr is not None else ""
+            self.buildDot(child, dot, nodesToFocus, focusColor, label)
+
+    def render(self, title, nodesToFocus = [], focusColor = 'blue'):
+        dot = Digraph()
+        dot.node_attr.update(fontname='DejaVu Sans Mono')
+        dot.edge_attr.update(fontname='DejaVu Sans Mono')
+        self.buildDot(self.root, dot, nodesToFocus, focusColor)
+        # dot.save(f'progress/{str(self.tick)}_{title}.jpg',)
+        dot.render(f'progress/{str(self.tick)}_{title}', view = True)
+        self.tick += 1
         
     def __str__(self):
         nodes_s = ",".join(["%s" % n for n in self.nodes()])
         return "{%s}" % nodes_s
-    
-    def convertToDOT(self):
-        dot = Digraph()
-        dot.node_attr.update(fontname='DejaVu Sans Mono')
-        dot.edge_attr.update(fontname='DejaVu Sans Mono')
-        self.root.convertToDOT(dot)
-        return dot
 
     def getFreshNodeId(self):
         self.freshNodeId += 1

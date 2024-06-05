@@ -115,7 +115,7 @@ class Let(Exp):
         self.body = body
         self.bindings = bindings
     def __str__(self):
-        bindings_s = ",".join(["%s=%s" % b for b in self.bindings])
+        bindings_s = ",".join(["%s:=%s" % b for b in self.bindings])
         return "let %s in %s" % (bindings_s, self.body)
     def isLet(self):
         return True
@@ -206,7 +206,6 @@ class OutFormat(object):
         self.exp = exp
         self.root = root
         self.node = node
-        self.vars = exp.vars()
 
 class Program(object):
     def __init__(self, rules):

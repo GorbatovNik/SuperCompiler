@@ -46,7 +46,7 @@ class Solver:
             self.contractions[l.vname] = r
         
         elif l.isCall():
-            self.extraDriving = self.driveEngine.drivingStep(l)
+            self.extraDriving = self.driveEngine.drivingFCall(l)
             # print()
         else:
             raise ValueError('unknown situation')
@@ -84,7 +84,7 @@ class DrivingEngine(object):
 # e : Exp (Var, Call, Let, Ctr)
 
 # возвращает список выражений, на которые ветвится выражение e
-    def drivingStep(self, e, checkContractionNeed=False, node=None):
+    def drivingFCall(self, e, checkContractionNeed=False): #, node=None):
         if e.isCtr():
             return False if checkContractionNeed else [(arg, None, None) for arg in e.args]
         elif e.isHCall():
@@ -112,10 +112,10 @@ class DrivingEngine(object):
                             return len(res)>1
                         return res
             return len(res)>0 if checkContractionNeed else res
-        elif e.isLet():
-            return False if checkContractionNeed else [(exp, None, None) for (vn, exp) in e.bindings] + [(e.body, None, node.drivingFuncName)]
-        else:
-            raise ValueError("Unknown expression type")
+        # elif e.isLet():
+        #     return False if checkContractionNeed else [(exp, None, None) for (vn, exp) in e.bindings] + [(e.body, None, node.drivingFuncName)]
+        # else:
+        #     raise ValueError("Unknown expression type")
 
     # def driveBranch(self, e, rule):
         # vname = e.args[0].vname
@@ -135,28 +135,15 @@ class BasicProcessTreeBuilder(object):
         self.drivingEngine = drivingEngine
         self.tree = ProcessTree(exp)
 
-    # The parts common to the basic and advanced supercompilers.
-
-    # If beta `instOf` alpha, we generalize beta by introducing
-    # a let-expression, in order to make beta the same as alpha
-    # (modulo variable names).
-
     def loopBack(self, beta, alpha):
-        beta.isLast = True
-        alpha.isLast = True
-        dot = self.tree.convertToDOT()
-        dot.render("loop found", view=True)
-        beta.isLast = False
-        alpha.isLast = False
+        self.tree.render("loop found", [beta, alpha])
         subst = matchAgainst(alpha.exp, beta.exp)
         bindings = list(subst.items())
         bindings.sort()
         letExp = Let(alpha.exp, bindings)
         self.tree.replaceSubtree(beta, letExp)
-        beta.isLast = True
-        dot = self.tree.convertToDOT()
-        dot.render("loop managed", view=True)
-        beta.isLast = False
+        beta.exp.type = "special case"
+        self.tree.render("loop managed", [beta])
 
     # This function applies a driving step to the node's expression,
     # and, in general, adds children to the node.
