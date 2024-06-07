@@ -1,5 +1,6 @@
 import string
 import copy
+from enum import Enum
 
 class Exp(object):
     def __ne__(self, other):
@@ -111,12 +112,23 @@ class Call(Exp):
         return vs
 
 class Let(Exp):
-    def __init__(self, body, bindings):
+    class Type(Enum):
+        SPECIAL_CASE = "special case"
+        HE_ABSTRACT = "homeo-emb: ancestor abstract"
+        HE_SPLIT = "homeo-emb: descendant decompose"
+        CTR_DECOMPOSE = "ctr decompose"
+        GENERAL_EMB = "general emb"
+    def __init__(self, body, bindings, type_):
         self.body = body
         self.bindings = bindings
+        self.type = type_
     def __str__(self):
-        bindings_s = ",".join(["%s:=%s" % b for b in self.bindings])
-        return "let %s in %s" % (bindings_s, self.body)
+        # bindings_s = ",".join(["%s:=%s" % b for b in self.bindings])
+        # return "let %s in %s" % (bindings_s, self.body)
+        return "letexp"
+    
+    def can_insert_format_to_body(self) -> bool:
+        return self.type in [Let.Type.GENERAL_EMB, Let.Type.CTR_DECOMPOSE, Let.Type.HE_SPLIT]
     def isLet(self):
         return True
 

@@ -117,13 +117,17 @@ class ProcessTree(object):
         if node.exp.isLet():
             lbl = "<(let "
             for (let, (vname, _)) in zip(node.children[:-1], node.exp.bindings):
-                if not let.outFormat.exp.isStackBottom() and not let.exp.isVar():
-                    lbl += f"&lt;{','.join(let.outFormat.exp.vars())}&gt;:={str(let.exp)}:{let.outFormat.exp}, "
+                if not let.outFormat.exp.isStackBottom() and not let.exp.isVar() and not let.isPassive():
+                    lbl += f"&lt;{','.join(let.outFormat.exp.vars())}&gt;:=(({str(let.exp)}):{let.outFormat.exp}), "
             if len(lbl) > 7:
                 lbl += "<br/>"
-            for (vname, exp) in node.exp.bindings:
-                lbl += f"{vname}:={str(exp)}, "
-            lbl += f"<br/>in {node.exp.body}):{node.outFormat.exp}<br/>{node.exp.type}>"
+            for (i, (vname, exp)) in enumerate(node.exp.bindings):
+                if len(node.children)==0 or node.children[i].outFormat.exp.isStackBottom() or node.children[i].exp.isVar(): # or node.children[i].exp.isPassive():
+                    lbl += f"{vname}:={str(exp)}, "
+            if len(node.children) > 0:
+                lbl += f"<br/>in {node.children[-1].exp}):{node.outFormat.exp}<br/>{node.exp.type.value}>"
+            else:
+                lbl += f"<br/>in {node.exp.body}):{node.outFormat.exp}<br/>{node.exp.type.value}>"
         else:
             lbl = "<(" + str(node.exp) + "):" + str(node.outFormat.exp) + "<br/>DFN = " + str(node.drivingFuncName) + ">"
         dot.node(str(node.nodeId), lbl, color = color)
@@ -150,7 +154,7 @@ class ProcessTree(object):
         self.buildDot(self.root, dot, nodesToFocus, focusColor)
         dot.attr(label=title, labelloc="t", fontsize="20")
         # dot.save(f'progress/{str(self.tick)}_{title}.jpg',)
-        dot.render(f'progress/{f"{self.tick:03}"}_{title}', view = False)
+        dot.render(f'progress/{f"{self.tick:05}"}_{title}', view = False)
         self.tick += 1
 
     def __str__(self):

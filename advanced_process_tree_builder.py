@@ -109,31 +109,27 @@ class AdvancedProcessTreeBuilder(object):
         subst = matchAgainst(alpha.exp, beta.exp)
         bindings = list(subst.items())
         bindings.sort()
-        letExp = Let(alpha.exp, bindings)
+        letExp = Let(alpha.exp, bindings, Let.Type.SPECIAL_CASE)
         self.tree.replaceSubtree(beta, letExp)
-        beta.exp.type = "special case"
         # self.tree.render("Let-node for special case created", [beta])
 
     def abstract(self, alpha, exp, subst):
         bindings = list(subst.items())
         bindings.sort()
-        letExp = Let(exp, bindings)
-        # print(str(self.tree))
+        letExp = Let(exp, bindings, Let.Type.HE_ABSTRACT)
         self.tree.replaceSubtree(alpha, letExp)
-        alpha.exp.type = "he: abstract"
         self.tree.render("dangerous embedding managed", [alpha])
-        self.manageLet(alpha, False)
+        self.manageLet(alpha)
 
     def split(self, beta):
         exp = beta.exp
         args = exp.args
         names1 = self.nameGen.freshNameList(len(args))
         args1 = [Var(x) for x in names1]
-        letExp = Let(beta.exp.cloneFunctor(args1), list(zip(names1, args)))
+        letExp = Let(beta.exp.cloneFunctor(args1), list(zip(names1, args)). Let.Type.HE_SPLIT)
         self.tree.replaceSubtree(beta, letExp)
-        beta.exp.type = "he: split"
         self.tree.render("dangerous embedding managed", [beta])
-        self.manageLet(beta, True)
+        self.manageLet(beta)
 
     def generalizeAlphaOrSplit(self, beta, alpha):
         gen = self.msgBuilder.build(alpha.exp, beta.exp)
@@ -150,26 +146,30 @@ class AdvancedProcessTreeBuilder(object):
                 return alpha
         return None
 
-    def manageLet(self, node, insertFmtToIn):
-        node.exp.insertFmtToIn = insertFmtToIn
+    def manageLet(self, node):
+        insertFmtToIn = node.exp.can_insert_format_to_body()
         self.tree.render("Start let-node managing", [node])
         children = [(exp, None, None) for (vn, exp) in node.exp.bindings] + [(node.exp.body, None, node.drivingFuncName)]
         self.tree.addChildren(node, children)
         in_ = node.children[-1]
-        newBinds = []
+        # newBinds = []
         bodySubst = {}
         for i, child in enumerate(node.children[:-1]):
             self.buildRecursive(child)
             if not child.outFormat.exp.isStackBottom() and not child.exp.isVar():
                 if insertFmtToIn:
+                    # pass
                     bodySubst[node.exp.bindings[i][0]] = child.outFormat.exp
+                    # in_.exp = node.exp.body.applySubst({node.exp.bindings[i][0] : child.outFormat.exp})
+                    # node.exp.body = node.exp.body.applySubst({node.exp.bindings[i][0] : child.outFormat.exp})
                 # else:
-                newBinds.append((node.exp.bindings[i][0], child.outFormat.exp))
-            else:
-                newBinds.append(node.exp.bindings[i])
-        node.exp.bindings = newBinds
+                # newBinds.append((node.exp.bindings[i][0], child.outFormat.exp))
+            # else:
+                # newBinds.append(node.exp.bindings[i])
+        # node.exp.bindings = newBinds
         if insertFmtToIn:
             node.exp.body = node.exp.body.applySubst(bodySubst)
+            # in_.exp = node.exp.body.applySubst(bodySubst)
             in_.exp = copy.deepcopy(node.exp.body)
         self.tree.render("let-branches managed", [node])
         self.buildRecursive(in_)
@@ -202,7 +202,7 @@ class AdvancedProcessTreeBuilder(object):
         if beta.isProcessed():
             alpha = beta.funcAncestor()
             if not alpha.outFormat.exp.isStackBottom():
-                if beta.outFormat.exp.isStackBottom() or not equiv(beta.outFormat.exp, alpha.outFormat.exp):
+                if beta.outFormat.exp.isStackBottom() or not instOf(alpha.outFormat.exp, beta.outFormat.exp):
                     self.tree.render("Hypothesis is refuted", [beta], focusColor='red')
                     newfmt = copy.deepcopy(alpha.outFormat.exp)
                     newfmt.changeVarsToNewParams(self.nameGen)
@@ -216,16 +216,15 @@ class AdvancedProcessTreeBuilder(object):
             moreGenAnc = beta.findMoreGeneralAncestor() #FGHCall only
             if moreGenAnc:
                 self.loopBack(beta, moreGenAnc) # beta.exp is let now
-                self.manageLet(beta, False)
+                self.manageLet(beta)
                 return
         if beta.exp.isCtr():
             e = beta.exp
             names = self.nameGen.freshNameList(len(e.args))
             args = [Var(x) for x in names]
-            letExp = Let(e.cloneFunctor(args), list(zip(names, e.args)))
+            letExp = Let(e.cloneFunctor(args), list(zip(names, e.args)), Let.Type.CTR_DECOMPOSE)
             self.tree.replaceSubtree(beta, letExp)
-            beta.exp.type = "ctr decompose"
-            self.manageLet(beta, True)
+            self.manageLet(beta)
             return
         
         if beta.exp.isFGHCall():
@@ -233,11 +232,10 @@ class AdvancedProcessTreeBuilder(object):
             Cf, C, Cz = beta.findMoreGeneralEmbeddedAncestor(freshName) #FGHCall only
             if Cf:
                 self.tree.render("More General Embedded Ancestor found", [beta, Cf])
-                letExp = Let(Cz, [(freshName, C)])
+                letExp = Let(Cz, [(freshName, C)], Let.Type.GENERAL_EMB)
                 self.tree.replaceSubtree(beta, letExp)
-                beta.exp.type = "general emb"
                 self.tree.render("Let created", [beta, Cf])
-                self.manageLet(beta, True)
+                self.manageLet(beta)
                 return
             
         contrNeed = beta.exp.isFGHCall() and self.drivingEngine.drivingFCall(beta.exp, checkContractionNeed=True)
@@ -253,7 +251,7 @@ class AdvancedProcessTreeBuilder(object):
                 self.buildRecursive(child)
             return
         if beta.exp.isLet():
-            self.manageLet(beta, beta.exp.insertFmtToIn)
+            self.manageLet(beta)
             return
         assert False
 
