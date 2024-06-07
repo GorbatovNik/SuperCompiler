@@ -1,17 +1,118 @@
 ### Advanced Supercompiler with homeomorphic imbedding and generalization  
 
-from basic_process_tree_builder import *
 from he import embeddedIn
 from msg import MSGBuilder
 from algebra import *
+from sll_language import *
+from process_tree import  Node, ProcessTree
+import copy
 
-class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
+class DrivingEngine(object):
+    def __init__(self, nameGen, prog):
+        "The program is supposed to be correct: no duplicate definitions, etc."
+        self.nameGen = nameGen
+        self.hRules = dict()
+        for rule in prog.rules:
+            name = rule.name
+            if name in self.hRules:
+                "Lists are mutable!"
+                self.hRules[name].append(rule)
+            else:
+                self.hRules[name] = [rule]
+    def drivingFCall(self, e, checkContractionNeed=False): #, node=None):
+        if e.isCtr():
+            return False if checkContractionNeed else [(arg, None, None) for arg in e.args]
+        elif e.isHCall():
+            res = []
+            rules = self.hRules[e.name]
+            for rule in rules:
+                solver = Solver(self, self.nameGen)
+                for k, (earg, rarg) in enumerate(zip(e.args, rule.patternList)):
+                    solver.addEquation(earg, rarg)
+                    solver_branches = solver.extraDriving
+                    if solver_branches:
+                        if checkContractionNeed:
+                            return not(len(solver_branches)==1 and not solver_branches[0][1]) # solver_branches[0][1] is contraction
+                        branches = []
+                        for (subexp, c, drivingFuncName) in solver_branches:
+                            newexp = e.applySubst(c)
+                            newexp.args[k] = subexp
+                            branches.append((newexp, c, drivingFuncName))
+                        return branches 
+                if solver.isConsistent():
+                    res.append((rule.body.applySubst(solver.subst), solver.contractions, e.name))
+                    # print(f"({str(res[-1][0])}, {str(res[-1][1])}, {str(res[-1][2])}")
+                    if not solver.contractions:
+                        if checkContractionNeed:
+                            return len(res)>1
+                        return res
+            return len(res)>0 if checkContractionNeed else res
+
+class Solver:
+    def __init__(self, driveEngine, nameGen):
+        self.driveEngine = driveEngine
+        self.nameGen = nameGen
+        self.contractions = dict()
+        self.subst = dict()
+        self.isConsistentBool = True
+        self.extraDriving = None
+    
+    def isConsistent(self):
+        return self.isConsistentBool
+    
+    def addEquation(self, l, r):
+        l = l.applySubst(self.contractions)
+        
+        if r.isVar():
+            self.subst[r.vname] = l
+        elif l.isCtr() and r.isCtr():
+            if l.name == r.name:
+                for k, (larg, rarg) in enumerate(zip(l.args, r.args)):
+                    self.addEquation(larg, rarg)
+                    if self.extraDriving:
+                        branches = []
+                        for (subexp, c, drivingFuncName) in self.extraDriving:
+                            newexp = l.applySubst(c)
+                            newexp.args[k] = subexp
+                            branches.append((newexp, c, drivingFuncName))
+                        self.extraDriving = branches
+                        return
+            else:
+                self.isConsistentBool = False
+        elif l.isVar():
+            r = copy.deepcopy(r)
+            subst = dict(r.changeVarsToNewParams(self.nameGen))
+            self.subst.update(subst)
+            newCntr = dict([(l.vname, r)])
+            for key in self.contractions.keys():
+                self.contractions[key] = self.contractions[key].applySubst(newCntr)
+            for key in self.subst.keys():
+                self.subst[key] = self.subst[key].applySubst(newCntr)
+            self.contractions[l.vname] = r
+        
+        elif l.isCall():
+            self.extraDriving = self.driveEngine.drivingFCall(l)
+            # print()
+        else:
+            raise ValueError('unknown situation')
+
+class AdvancedProcessTreeBuilder(object):
 
     def __init__(self, drivingEngine, exp):
         self.drivingEngine = drivingEngine
         self.tree = ProcessTree(exp)
         self.nameGen = drivingEngine.nameGen
         self.msgBuilder = MSGBuilder(self.nameGen)
+
+    def loopBack(self, beta, alpha):
+        self.tree.render("Special case found", [beta, alpha])
+        subst = matchAgainst(alpha.exp, beta.exp)
+        bindings = list(subst.items())
+        bindings.sort()
+        letExp = Let(alpha.exp, bindings)
+        self.tree.replaceSubtree(beta, letExp)
+        beta.exp.type = "special case"
+        # self.tree.render("Let-node for special case created", [beta])
 
     def abstract(self, alpha, exp, subst):
         bindings = list(subst.items())
@@ -49,24 +150,9 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
                 return alpha
         return None
 
-    def buildStep(self, beta):
-        alpha = beta.findMoreGeneralAncestor()
-        if alpha:
-            self.loopBack(beta, alpha)
-        else:
-            if not beta.exp.isCtr():
-                contrNeed = self.drivingEngine.drivingStep(beta.exp, checkContractionNeed=True)
-                alpha = self.findEmbeddedAncestor(beta, contrNeed, beta.drivingFuncName)
-                if alpha:
-                    # print("embeding found\nbeta=%s\nalpha=%s" % (beta, alpha))
-                    self.generalizeAlphaOrSplit(beta, alpha)
-                else:
-                    self.expandNode(beta)
-            else:
-                self.expandNode(beta)
-
     def manageLet(self, node, insertFmtToIn):
         node.exp.insertFmtToIn = insertFmtToIn
+        self.tree.render("Start let-node managing", [node])
         children = [(exp, None, None) for (vn, exp) in node.exp.bindings] + [(node.exp.body, None, node.drivingFuncName)]
         self.tree.addChildren(node, children)
         in_ = node.children[-1]
@@ -85,11 +171,12 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
         if insertFmtToIn:
             node.exp.body = node.exp.body.applySubst(bodySubst)
             in_.exp = copy.deepcopy(node.exp.body)
+        self.tree.render("let-branches managed", [node])
         self.buildRecursive(in_)
-        self.tree.render("let managed", [node])
+        self.tree.render("in-branch managed", [node])
  
     def buildRecursive(self, beta):
-        print(beta.exp)
+        # print(beta.exp)
         if beta.isPassive():
             if beta.outFormat.exp.isStackBottom():
                 self.tree.render("Hypothesis is refuted", [beta], focusColor='red')
@@ -169,16 +256,9 @@ class AdvancedProcessTreeBuilder(BasicProcessTreeBuilder):
             self.manageLet(beta, beta.exp.insertFmtToIn)
             return
         assert False
-        # if beta.exp.isLet():
-        #     self.manageLet(node)
-        #     return
-        # self.expandNode(beta)
-        # for child in beta.children:
-        #     self.buildRecursive(child)
 
 def buildAdvancedProcessTree(nameGen, k, prog, exp):
     drivingEngine = DrivingEngine(nameGen, prog)
     builder = AdvancedProcessTreeBuilder(drivingEngine, exp)
-    # builder.buildProcessTree(k)
     builder.buildRecursive(builder.tree.root)
     return builder.tree

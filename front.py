@@ -301,16 +301,17 @@ object Main {
 }
 """
 
-from basic_process_tree_builder import *
-from advanced_process_tree_builder import *
-from residual_program_generator import *
+# from advanced_process_tree_builder import *
+# from residual_program_generator import *
+# import global_vars
 
-sll_prog, sll_task = parse_program(sum3x)
-nameGen = NameGen("v", 100)
-tree = buildAdvancedProcessTree(nameGen, 100, sll_prog, sll_task)
-# (resPr, resExp) = ResidualProgramGenerator(tree).genResidualProgram()
-# print(tree)
-tree.render("graph of configurations")
+# global_vars.debug = True
+# sll_prog, sll_task = parse_program(sum3x)
+# nameGen = NameGen("v", 100)
+# tree = buildAdvancedProcessTree(nameGen, 100, sll_prog, sll_task)
+# # (resPr, resExp) = ResidualProgramGenerator(tree).genResidualProgram()
+# # print(tree)
+# tree.render("graph of configurations", release=True)
 # dot.render("out.png", format='png')
 # print(resPr)
 # print(resExp)

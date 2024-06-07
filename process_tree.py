@@ -4,19 +4,7 @@ from ge import *
 from graphviz import Digraph
 import shutil
 import os
-
-class Contraction(object):
-    def __init__(self, vname, cname, cparams):
-        self.vname = vname
-        self.cname = cname
-        self.cparams = cparams
-
-    def __str__(self):
-        cparams_s = ",".join(self.cparams)
-        pat_s = self.cname
-        if len(self.cparams) > 0 :
-            pat_s += "(" + cparams_s + ")"
-        return self.vname + "=" + pat_s
+import global_vars
 
 def showNodeId(node):
     if node :
@@ -42,9 +30,7 @@ class Node(object):
     def __str__(self):
         children_s = ",".join(["%s" % n.nodeId for n in self.children])
         contr = None
-        if isinstance(self.contr, Contraction):
-            contr = str(self.contr)
-        elif self.contr is not None:
+        if self.contr is not None:
             contr = "{"
             for key,value in self.contr.items():
                 contr += f"\'{key}\': " + str(value) +", "
@@ -155,15 +141,18 @@ class ProcessTree(object):
                 label = ('\n'.join([str(key) + "→" + str(value) for key, value in child.contr.items()])) if child.contr is not None else ""
             self.buildDot(child, dot, nodesToFocus, focusColor, label)
 
-    def render(self, title, nodesToFocus = [], focusColor = 'blue'):
+    def render(self, title, nodesToFocus = [], focusColor = 'blue', release=False):
+        if not global_vars.debug and not release:
+            return
         dot = Digraph()
-        dot.node_attr.update(fontname='DejaVu Sans Mono')
-        dot.edge_attr.update(fontname='DejaVu Sans Mono')
+        dot.node_attr.update(fontname='Sans Not-Rotated 14')
+        dot.edge_attr.update(fontname='Sans Not-Rotated 14')
         self.buildDot(self.root, dot, nodesToFocus, focusColor)
+        dot.attr(label=title, labelloc="t", fontsize="20")
         # dot.save(f'progress/{str(self.tick)}_{title}.jpg',)
-        dot.render(f'progress/{str(self.tick)}_{title}', view = True)
+        dot.render(f'progress/{f"{self.tick:03}"}_{title}', view = False)
         self.tick += 1
-        
+
     def __str__(self):
         nodes_s = ",".join(["%s" % n for n in self.nodes()])
         return "{%s}" % nodes_s
