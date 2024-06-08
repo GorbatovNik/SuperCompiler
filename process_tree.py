@@ -117,13 +117,20 @@ class ProcessTree(object):
         if node.exp.isLet():
             lbl = "<(let "
             for (let, (vname, _)) in zip(node.children[:-1], node.exp.bindings):
-                if not let.outFormat.exp.isStackBottom() and not let.exp.isVar() and not let.isPassive():
+                if not let.exp.isVar() and (not let.outFormat.exp.isStackBottom() or node.exp.type == Let.Type.CTR_DECOMPOSE) and not (let.exp.isPassive() and not let.exp.hasVar()):
                     lbl += f"&lt;{','.join(let.outFormat.exp.vars())}&gt;:=(({str(let.exp)}):{let.outFormat.exp}), "
+                # if not let.outFormat.exp.isStackBottom() and not let.exp.isVar() and not let.isPassive() or let.isPassive() and let.exp.hasStackBottom() or let.outFormat.exp.isStackBottom() and node.exp.type == Let.Type.CTR_DECOMPOSE:
+                    # lbl += f"&lt;{','.join(let.outFormat.exp.vars())}&gt;:=(({str(let.exp)}):{let.outFormat.exp}), "
             if len(lbl) > 7:
                 lbl += "<br/>"
             for (i, (vname, exp)) in enumerate(node.exp.bindings):
-                if len(node.children)==0 or node.children[i].outFormat.exp.isStackBottom() or node.children[i].exp.isVar(): # or node.children[i].exp.isPassive():
-                    lbl += f"{vname}:={str(exp)}, "
+                if len(node.children)==0 or node.children[i].exp.isVar() or not node.exp.can_insert_format_to_body() or (node.children[i].outFormat.exp.isStackBottom() and node.exp.type != Let.Type.CTR_DECOMPOSE):
+                    if len(node.children)==0 or node.children[i].outFormat.exp.isStackBottom() or node.children[i].exp.isVar():
+                        lbl += f"{vname}:={str(exp)}, "
+                    else:
+                        lbl += f"{vname}:={str(node.children[i].outFormat.exp)}, "
+                # if len(node.children)==0 or node.children[i].outFormat.exp.isStackBottom()and(node.children[i].isPassive() or node.exp.type != Let.Type.CTR_DECOMPOSE) or node.children[i].exp.isVar(): # or node.children[i].exp.isPassive():
+                    # lbl += f"{vname}:={str(exp)}, "
             if len(node.children) > 0:
                 lbl += f"<br/>in {node.children[-1].exp}):{node.outFormat.exp}<br/>{node.exp.type.value}>"
             else:

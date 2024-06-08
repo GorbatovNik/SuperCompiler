@@ -156,10 +156,15 @@ class AdvancedProcessTreeBuilder(object):
         bodySubst = {}
         for i, child in enumerate(node.children[:-1]):
             self.buildRecursive(child)
-            if not child.outFormat.exp.isStackBottom() and not child.exp.isVar():
-                if insertFmtToIn:
-                    # pass
+            assert not child.isPassive() or not child.outFormat.exp.isStackBottom()
+            if insertFmtToIn and not child.exp.isVar():
+                if not child.outFormat.exp.isStackBottom() or node.exp.type == Let.Type.CTR_DECOMPOSE:
                     bodySubst[node.exp.bindings[i][0]] = child.outFormat.exp
+
+            # if not child.outFormat.exp.isStackBottom() and not child.exp.isVar() or not child.exp.isVar() and node.exp.type==Let.Type.CTR_DECOMPOSE:
+                # if insertFmtToIn:
+                    # pass
+                    # bodySubst[node.exp.bindings[i][0]] = child.outFormat.exp
                     # in_.exp = node.exp.body.applySubst({node.exp.bindings[i][0] : child.outFormat.exp})
                     # node.exp.body = node.exp.body.applySubst({node.exp.bindings[i][0] : child.outFormat.exp})
                 # else:
@@ -178,6 +183,8 @@ class AdvancedProcessTreeBuilder(object):
     def buildRecursive(self, beta):
         # print(beta.exp)
         if beta.isPassive():
+            if beta.exp.hasStackBottom():
+                return
             if beta.outFormat.exp.isStackBottom():
                 self.tree.render("Hypothesis is refuted", [beta], focusColor='red')
                 newfmt = copy.deepcopy(beta.exp)

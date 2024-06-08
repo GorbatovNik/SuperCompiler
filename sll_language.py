@@ -36,6 +36,27 @@ class Exp(object):
             for arg in self.args:
                 ans = ans and arg.isPassive()
             return ans
+        if self.isStackBottom():
+            return True
+        return False
+    def hasStackBottom(self):
+        if self.isStackBottom():
+            return True
+        if self.isCall():
+            for arg in self.args:
+                if arg.hasStackBottom():
+                    return True
+            return False
+        return False
+    
+    def hasVar(self):
+        if self.isVar():
+            return True
+        if self.isCall():
+            for arg in self.args:
+                if arg.hasVar():
+                    return True
+            return False
         return False
     def changeVarsToNewParams(self, nameGen):
         if self.isVar():
@@ -208,6 +229,9 @@ class StackBottom(Exp):
     
     def isStackBottom(self):
         return True
+    
+    def vars(self):
+        return []
     
 import random
 class OutFormat(object):
