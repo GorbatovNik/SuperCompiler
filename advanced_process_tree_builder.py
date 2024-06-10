@@ -104,15 +104,6 @@ class AdvancedProcessTreeBuilder(object):
         self.nameGen = drivingEngine.nameGen
         self.msgBuilder = MSGBuilder(self.nameGen)
 
-    def loopBack(self, beta, alpha):
-        self.tree.render("Special case found", [beta, alpha])
-        subst = matchAgainst(alpha.exp, beta.exp)
-        bindings = list(subst.items())
-        bindings.sort()
-        letExp = Let(alpha.exp, bindings, Let.Type.SPECIAL_CASE)
-        self.tree.replaceSubtree(beta, letExp)
-        # self.tree.render("Let-node for special case created", [beta])
-
     def abstract(self, alpha, exp, subst):
         bindings = list(subst.items())
         bindings.sort()
@@ -181,7 +172,6 @@ class AdvancedProcessTreeBuilder(object):
         self.tree.render("in-branch managed", [node])
  
     def buildRecursive(self, beta):
-        # print(beta.exp)
         if beta.isPassive():
             if beta.exp.hasStackBottom():
                 return
@@ -222,7 +212,14 @@ class AdvancedProcessTreeBuilder(object):
         if beta.exp.isFGHCall():
             moreGenAnc = beta.findMoreGeneralAncestor() #FGHCall only
             if moreGenAnc:
-                self.loopBack(beta, moreGenAnc) # beta.exp is let now
+                alpha = moreGenAnc
+                self.tree.render("Special case found", [beta, alpha])
+                subst = matchAgainst(alpha.exp, beta.exp)
+                bindings = list(subst.items())
+                bindings.sort()
+                letExp = Let(alpha.exp, bindings, Let.Type.SPECIAL_CASE)
+                self.tree.replaceSubtree(beta, letExp)
+                # self.loopBack(beta, moreGenAnc) # beta.exp is let now
                 self.manageLet(beta)
                 return
         if beta.exp.isCtr():
