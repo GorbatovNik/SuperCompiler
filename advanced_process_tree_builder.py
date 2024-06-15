@@ -6,6 +6,7 @@ from algebra import *
 from sll_language import *
 from process_tree import  Node, ProcessTree
 import copy
+import global_vars
 
 class DrivingEngine(object):
     def __init__(self, nameGen, prog):
@@ -41,7 +42,6 @@ class DrivingEngine(object):
                         return branches 
                 if solver.isConsistent():
                     res.append((rule.body.applySubst(solver.subst), solver.contractions, e.name))
-                    # print(f"({str(res[-1][0])}, {str(res[-1][1])}, {str(res[-1][2])}")
                     if not solver.contractions:
                         if checkContractionNeed:
                             return len(res)>1
@@ -103,7 +103,9 @@ class AdvancedProcessTreeBuilder(object):
         self.tree = ProcessTree(exp)
         self.nameGen = drivingEngine.nameGen
         self.msgBuilder = MSGBuilder(self.nameGen)
-
+        self.stats = {}
+        for name, member in Let.Type.__members__.items():
+            self.stats[name] = 0
     def abstract(self, alpha, exp, subst):
         bindings = list(subst.items())
         bindings.sort()
@@ -111,7 +113,6 @@ class AdvancedProcessTreeBuilder(object):
         self.tree.replaceSubtree(alpha, letExp)
         self.tree.render("dangerous embedding managed", [alpha])
         self.manageLet(alpha)
-
     def split(self, beta):
         exp = beta.exp
         args = exp.args
@@ -138,34 +139,24 @@ class AdvancedProcessTreeBuilder(object):
         return None
 
     def manageLet(self, node):
+        self.stats[node.exp.type.name] += 1
         insertFmtToIn = node.exp.can_insert_format_to_body()
         self.tree.render("Start let-node managing", [node])
         children = [(exp, None, None) for (vn, exp) in node.exp.bindings] + [(node.exp.body, None, node.drivingFuncName)]
         self.tree.addChildren(node, children)
         in_ = node.children[-1]
-        # newBinds = []
         bodySubst = {}
         for i, child in enumerate(node.children[:-1]):
             self.buildRecursive(child)
             assert not child.isPassive() or not child.outFormat.exp.isStackBottom()
             if insertFmtToIn and not child.exp.isVar():
                 if not child.outFormat.exp.isStackBottom() or node.exp.type == Let.Type.CTR_DECOMPOSE:
-                    bodySubst[node.exp.bindings[i][0]] = child.outFormat.exp
-
-            # if not child.outFormat.exp.isStackBottom() and not child.exp.isVar() or not child.exp.isVar() and node.exp.type==Let.Type.CTR_DECOMPOSE:
-                # if insertFmtToIn:
-                    # pass
-                    # bodySubst[node.exp.bindings[i][0]] = child.outFormat.exp
-                    # in_.exp = node.exp.body.applySubst({node.exp.bindings[i][0] : child.outFormat.exp})
-                    # node.exp.body = node.exp.body.applySubst({node.exp.bindings[i][0] : child.outFormat.exp})
-                # else:
-                # newBinds.append((node.exp.bindings[i][0], child.outFormat.exp))
-            # else:
-                # newBinds.append(node.exp.bindings[i])
-        # node.exp.bindings = newBinds
+                    if node.exp.isPassive() and not node.exp.hasVar():
+                        bodySubst[node.exp.bindings[i][0]] = node.exp
+                    else:
+                        bodySubst[node.exp.bindings[i][0]] = child.outFormat.exp
         if insertFmtToIn:
             node.exp.body = node.exp.body.applySubst(bodySubst)
-            # in_.exp = node.exp.body.applySubst(bodySubst)
             in_.exp = copy.deepcopy(node.exp.body)
         self.tree.render("let-branches managed", [node])
         self.buildRecursive(in_)
@@ -198,6 +189,7 @@ class AdvancedProcessTreeBuilder(object):
             return
         if beta.isProcessed():
             alpha = beta.funcAncestor()
+            alpha.isBase = True
             if not alpha.outFormat.exp.isStackBottom():
                 if beta.outFormat.exp.isStackBottom() or not instOf(alpha.outFormat.exp, beta.outFormat.exp):
                     self.tree.render("Hypothesis is refuted", [beta], focusColor='red')
@@ -263,4 +255,9 @@ def buildAdvancedProcessTree(nameGen, k, prog, exp):
     drivingEngine = DrivingEngine(nameGen, prog)
     builder = AdvancedProcessTreeBuilder(drivingEngine, exp)
     builder.buildRecursive(builder.tree.root)
+    if global_vars.debug:
+        print("Let stats")
+        for key, value in builder.stats.items():
+            print(f'{key} : {value}')
+            
     return builder.tree

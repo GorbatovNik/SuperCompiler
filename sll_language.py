@@ -96,7 +96,7 @@ class Call(Exp):
         self.name = name
         self.args = args
     def __str__(self):
-        args_s = ",".join(["%s" % e for e in self.args])
+        args_s = ", ".join(["%s" % e for e in self.args])
         return "%s(%s)" % (self.name, args_s)
     def __eq__(self, other):
         if not isinstance(other, Exp):
@@ -147,6 +147,9 @@ class Let(Exp):
         # bindings_s = ",".join(["%s:=%s" % b for b in self.bindings])
         # return "let %s in %s" % (bindings_s, self.body)
         return "letexp"
+    
+    def vars(self):
+        return [bind[0] for bind in self.bindings]
     
     def can_insert_format_to_body(self) -> bool:
         return self.type in [Let.Type.GENERAL_EMB, Let.Type.CTR_DECOMPOSE, Let.Type.HE_SPLIT]
@@ -220,6 +223,19 @@ class HRule(object):
         body_s = "%s" % self.body
         return self.name + "(" + patterns_s + ")=" + body_s + ";"
 
+class LetCall(object):
+    def __init__(self, params, call):
+        self.params = params
+        self.call = call
+
+class ARule(object):
+    def __init__(self, name, patternList, letCallList, bodyList, outArity):
+        self.name = name
+        self.patternList = patternList
+        self.letCallList = letCallList
+        self.bodyList = bodyList
+        self.outArity = outArity
+
 class StackBottom(Exp):
     def __init__(self):
         pass
@@ -236,9 +252,6 @@ class StackBottom(Exp):
 import random
 class OutFormat(object):
     def __init__(self, node, root, exp=StackBottom()):
-        # if exp is None:
-            # self.exp = Var("d" + str(random.randint(0,1000)))
-        # else:
         self.exp = exp
         self.root = root
         self.node = node

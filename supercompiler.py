@@ -21,7 +21,6 @@ def merge_pdfs(directory, output):
     merger.write(output)
     merger.close()
     os.startfile(output)
-    # print(f"Все PDF файлы успешно объединены в {output}")
 
 def read_scala_file(file_path):
     try:
@@ -39,15 +38,17 @@ def main(file_path, debug):
     scala_code = read_scala_file(file_path)
     if scala_code is not None:
         print(f"Processing file: {file_path}")
-        print(f"File content:\n{scala_code}")
+        print(f"File content:\n{scala_code}\n")
         
         sll_prog, sll_task = parse_program(scala_code)
         nameGen = NameGen("v", 100)
         tree = buildAdvancedProcessTree(nameGen, 100, sll_prog, sll_task)
-        # (resPr, resExp) = ResidualProgramGenerator(tree).genResidualProgram()
-        # print(tree)
         tree.render("last", release=True)
         merge_pdfs("progress/", file_name + ".pdf")
+        ARPG = advancedResidualProgramGenerator(tree)
+        scala = ARPG.generate_scala()
+        print("\nResidual program:")
+        print(scala)
     else:
         print("Failed to read the file.")
     
