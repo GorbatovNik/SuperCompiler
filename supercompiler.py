@@ -43,12 +43,12 @@ def main(file_path, debug):
         sll_prog, sll_task = parse_program(scala_code)
         nameGen = NameGen("v", 100)
         tree = buildAdvancedProcessTree(nameGen, 100, sll_prog, sll_task)
-        tree.render("last", release=True)
-        merge_pdfs("progress/", file_name + ".pdf")
         ARPG = advancedResidualProgramGenerator(tree)
         scala = ARPG.generate_scala()
         print("\nResidual program:")
         print(scala)
+        tree.render("last", release=True)
+        merge_pdfs("progress/", file_name + ".pdf")
     else:
         print("Failed to read the file.")
     

@@ -189,7 +189,7 @@ class AdvancedProcessTreeBuilder(object):
             return
         if beta.isProcessed():
             alpha = beta.funcAncestor()
-            alpha.isBase = True
+            alpha.isBase = Node.IsBase.TRUE
             if not alpha.outFormat.exp.isStackBottom():
                 if beta.outFormat.exp.isStackBottom() or not instOf(alpha.outFormat.exp, beta.outFormat.exp):
                     self.tree.render("Hypothesis is refuted", [beta], focusColor='red')

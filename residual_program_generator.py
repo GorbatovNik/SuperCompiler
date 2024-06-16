@@ -22,14 +22,15 @@ class advancedResidualProgramGenerator(object):
             name1 = "%s%s" % (name, len(self.sigs) + 1)
             sig1 = (name1, vs)
             self.sigs[beta] = sig1
+            beta.residualName = name1
             return sig1
-    
+
     def genResidualProgram(self):
         resExp = self.genExp(self.tree.root)
         return (Program(self.rules, ), resExp)
     
     def defineFormatParams(self, node):
-        while len(node.children) == 1 and node.children[0].contr is None and not node.exp.isPassive() and not node.exp.isLet() and not node.isBase:
+        while len(node.children) == 1 and node.children[0].contr is None and not node.exp.isPassive() and not node.exp.isLet() and node.isBase == Node.IsBase.FALSE:
             protos = self.defineFormatParams(node.children[0])
             node.protos = copy.deepcopy(protos)
             return node.protos
@@ -44,7 +45,7 @@ class advancedResidualProgramGenerator(object):
             return protos
 
         if not node.exp.isLet():
-            if node.isBase:
+            if node.isBase == Node.IsBase.TRUE:
                 params = node.exp.vars()
                 sig = self.getSig(node, node.exp.name, params)
             alpha = node.funcAncestor()
@@ -76,7 +77,10 @@ class advancedResidualProgramGenerator(object):
                         resProtos.append(proto)
 
             node.protos = resProtos
-            if node.isBase:
+            if node.isBase == Node.IsBase.CANDIDATE and len(resProtos)>1:
+                params = node.exp.vars()
+                sig = self.getSig(node, node.exp.name, params)
+            if node.isBase == Node.IsBase.TRUE or node.isBase == Node.IsBase.CANDIDATE and len(resProtos)>1:
                 self.genAFunc(node)
                 sig = self.sigs[node]
                 node.protos = [ProtoRule(bodyList = [HCall(sig[0],[Var(vname) for vname in sig[1]])])]
@@ -84,13 +88,15 @@ class advancedResidualProgramGenerator(object):
         
         assert node.exp.isLet()
 
-        node.children[-1].isBase = True
+        if node.children[-1].isBase != Node.IsBase.TRUE:
+            node.children[-1].isBase = Node.IsBase.CANDIDATE
         inProto = copy.deepcopy(self.defineFormatParams(node.children[-1])[0]) # check in = let-node situation
         for (let, (i, (vname, _))) in zip(node.children[:-1], enumerate(node.exp.bindings)):
             if len(node.children)==0 or node.children[i].exp.isVar() or not node.exp.can_insert_format_to_body() or (node.children[i].outFormat.exp.isStackBottom() and node.exp.type != Let.Type.CTR_DECOMPOSE):
                 if len(node.children)==0 or node.children[i].outFormat.exp.isStackBottom() or node.children[i].exp.isVar():
                     let.outFormat.exp = Var(vname)
-            let.isBase = True
+            if let.isBase != Node.IsBase.TRUE:
+                let.isBase = Node.IsBase.CANDIDATE
             protos = self.defineFormatParams(let)
             letBodyList = protos[0].bodyList
             inProto.letCallList = inProto.letCallList + protos[0].letCallList
@@ -147,6 +153,7 @@ class advancedResidualProgramGenerator(object):
         mainsig = ("main", self.tree.root.exp.vars())
         self.sigs[self.tree.root] = mainsig
         self.genAFunc(self.tree.root, mainsig)
+        self.tree.root.residualName = "main"
 
         ctrs = {}
         def ctrsTrawl(exp):

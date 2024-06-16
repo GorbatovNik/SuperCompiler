@@ -5,6 +5,7 @@ from graphviz import Digraph
 import shutil
 import os
 import global_vars
+from enum import Enum
 
 def showNodeId(node):
     if node :
@@ -13,6 +14,12 @@ def showNodeId(node):
         return None
 
 class Node(object):
+    class IsBase(Enum):
+        TRUE = "True"
+        CANDIDATE = "Candidate"
+        FALSE = "False"
+
+
     "The constructor is supposed to be called via ProcessTree#newNode only."
     
     def __init__(self, tree, exp, contr, parent, children, drivingFuncName=None, outFormat = None):
@@ -24,7 +31,8 @@ class Node(object):
         self.children = children
         self.drivingFuncName = drivingFuncName
         self.outFormat = outFormat
-        self.isBase = False
+        self.isBase = Node.IsBase.FALSE
+        self.residualName = None
         if outFormat is None:
             self.outFormat = OutFormat(self, self)
 
@@ -129,12 +137,13 @@ class ProcessTree(object):
                     else:
                         lbl += f"{vname}:={str(node.children[i].outFormat.exp)}, "
             if len(node.children) > 0:
-                lbl += f"<br/>in {node.children[-1].exp}):{node.outFormat.exp}<br/>{node.exp.type.name}>"
+                lbl += f"<br/>in {node.children[-1].exp}):{node.outFormat.exp}<br/>{node.exp.type.name}"
             else:
-                lbl += f"<br/>in {node.exp.body}):{node.outFormat.exp}<br/>{node.exp.type.value}>"
+                lbl += f"<br/>in {node.exp.body}):{node.outFormat.exp}<br/>{node.exp.type.value}"
         else:
-            lbl = "<(" + str(node.exp) + "):" + str(node.outFormat.exp) + "<br/>DFN = " + str(node.drivingFuncName) + ">"
-        dot.node(str(node.nodeId), lbl, color = color)
+            lbl = "<(" + str(node.exp) + "):" + str(node.outFormat.exp) + "<br/>"#DFN = " + str(node.drivingFuncName)
+        lbl += ("\nResidual name: \"" + node.residualName + "\"" if node.residualName else "") + ">"
+        dot.node(str(node.nodeId), lbl, color = ("blue" if node.residualName else color))
         if node.isLeaf():
             anc = node.funcAncestor()
             if anc:
