@@ -30,7 +30,7 @@ class advancedResidualProgramGenerator(object):
         return (Program(self.rules, ), resExp)
     
     def defineFormatParams(self, node):
-        while len(node.children) == 1 and node.children[0].contr is None and not node.exp.isPassive() and not node.exp.isLet() and node.isBase == Node.IsBase.FALSE:
+        while len(node.children) == 1 and not node.children[0].contr and not node.exp.isPassive() and not node.exp.isLet() and node.isBase == Node.IsBase.FALSE:
             protos = self.defineFormatParams(node.children[0])
             node.protos = copy.deepcopy(protos)
             return node.protos
@@ -99,7 +99,8 @@ class advancedResidualProgramGenerator(object):
                 let.isBase = Node.IsBase.CANDIDATE
             protos = self.defineFormatParams(let)
             letBodyList = protos[0].bodyList
-            inProto.letCallList = inProto.letCallList + protos[0].letCallList
+            callListToAdd = copy.deepcopy(protos[0].letCallList)
+            # inProto.letCallList = inProto.letCallList + protos[0].letCallList
             inBodyList = inProto.bodyList
 
             if len(node.children)==0 or node.children[i].exp.isVar() or not node.exp.can_insert_format_to_body() or (node.children[i].outFormat.exp.isStackBottom() and node.exp.type != Let.Type.CTR_DECOMPOSE):
@@ -111,15 +112,17 @@ class advancedResidualProgramGenerator(object):
                     letSubst = {vname : let.outFormat.exp}
                 for i in range(len(inBodyList)):
                     inBodyList[i] = inBodyList[i].applySubst(letSubst)
+                for i in range(len(inProto.letCallList)):
+                    inProto.letCallList[i].call = inProto.letCallList[i].call.applySubst(letSubst)
             if not let.exp.isVar() and (not let.outFormat.exp.isStackBottom() or node.exp.type == Let.Type.CTR_DECOMPOSE) and not (let.exp.isPassive() and not let.exp.hasVar()):
         #         lbl += f"&lt;{','.join(let.outFormat.exp.vars())}&gt;:=(({str(let.exp)}):{let.outFormat.exp}), "
                 if len(letBodyList) == 1:
-                    inProto.letCallList.append(LetCall(let.outFormat.exp.vars(), letBodyList[0]))
+                    callListToAdd.append(LetCall(let.outFormat.exp.vars(), letBodyList[0]))
                 else:
                     assert len(letBodyList) == len(let.outFormat.exp.vars())
                     for (vname, letBody) in zip(let.outFormat.exp.vars(), letBodyList):
-                        inProto.letCallList.append(LetCall([vname], letBody))
-            
+                        callListToAdd.append(LetCall([vname], letBody))
+            inProto.letCallList = callListToAdd + inProto.letCallList
         node.protos = [inProto]
         return node.protos
 
@@ -147,7 +150,7 @@ class advancedResidualProgramGenerator(object):
             elif len(proto.bodyList) > 1:
                 for (var, body) in zip(self.tree.root.outFormat.exp.vars(), proto.bodyList):
                     proto.letCallList.append(LetCall([var], body))
-            proto.bodyList = [self.tree.root.outFormat.exp]
+            proto.bodyList = [self.tree.root.outFormat.exp] if not self.tree.root.outFormat.exp.isStackBottom() else []
         
 
         mainsig = ("main", self.tree.root.exp.vars())
@@ -211,7 +214,7 @@ class advancedResidualProgramGenerator(object):
                     r = str(bodyList[0])
                 else:
                     r = "(" + str(bodyList[0])
-                    for i in range(bodyList-1):
+                    for i in range(len(bodyList)-1):
                         r += ", " + str(bodyList[i+1])
                     r += ")"
                 return r

@@ -172,7 +172,11 @@ class AdvancedProcessTreeBuilder(object):
                 newfmt.changeVarsToNewParams(self.nameGen)
                 root = beta.outFormat.root
                 root.outFormat.exp = newfmt
-                root.children = [] 
+                if not root.exp.isLet():
+                    root.children = []
+                else:
+                    root.children[-1].children = []
+                    root = root.children[-1]
                 self.tree.render("New format hypothesis", [root])
                 self.buildRecursive(root)
             else:
@@ -182,7 +186,11 @@ class AdvancedProcessTreeBuilder(object):
                     self.tree.render("Hypothesis is refuted", [beta], focusColor='red')
                     root = beta.outFormat.root
                     root.outFormat.exp = gen.exp
-                    root.children = []
+                    if not root.exp.isLet():
+                        root.children = []
+                    else:
+                        root.children[-1].children = []
+                        root = root.children[-1]
                     self.tree.render("New format hypothesis", [root])
 
                     self.buildRecursive(root)
@@ -225,8 +233,8 @@ class AdvancedProcessTreeBuilder(object):
         
         if beta.exp.isFGHCall():
             freshName = self.nameGen.freshName()
-            Cf, C, Cz = beta.findMoreGeneralEmbeddedAncestor(freshName) #FGHCall only
-            if Cf:
+            Cf, C, Cz = beta.findMoreGeneralEmbeddedAncestor(freshName) # C = Cz / {x -> Cf/q}
+            if Cf and not Cz.isVar():
                 self.tree.render("More General Embedded Ancestor found", [beta, Cf])
                 letExp = Let(Cz, [(freshName, C)], Let.Type.GENERAL_EMB)
                 self.tree.replaceSubtree(beta, letExp)
@@ -255,9 +263,9 @@ def buildAdvancedProcessTree(nameGen, k, prog, exp):
     drivingEngine = DrivingEngine(nameGen, prog)
     builder = AdvancedProcessTreeBuilder(drivingEngine, exp)
     builder.buildRecursive(builder.tree.root)
-    if global_vars.debug:
-        print("Let stats")
-        for key, value in builder.stats.items():
-            print(f'{key} : {value}')
+    # if global_vars.debug:
+    print("Let stats")
+    for key, value in builder.stats.items():
+        print(f'{key} : {value}')
             
     return builder.tree

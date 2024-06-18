@@ -18,6 +18,6 @@ object Main {
   }
  
   def main : Any => Any = {
-    case xs => fbc(fab(Cons(A,xs)))
+    case Cons(A, xs) => fbc(fab(Cons(A,xs)))
   }
 }
