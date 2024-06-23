@@ -32,6 +32,18 @@ def read_scala_file(file_path):
     except Exception as e:
         print(f"An error occurred while reading the file: {e}")
 
+def test(scala_code):
+    global_vars.debug = False
+    global_vars.stats = False
+    global_vars.test = True
+    sll_prog, sll_task = parse_program(scala_code)
+    nameGen = NameGen("v", 100)
+    tree = buildAdvancedProcessTree(nameGen, 100, sll_prog, sll_task)
+    ARPG = advancedResidualProgramGenerator(tree)
+    scala = ARPG.generate_scala()
+    return scala
+
+
 def main(file_path, debug):
     file_name = os.path.splitext(os.path.basename(file_path))[0]
     global_vars.debug = debug

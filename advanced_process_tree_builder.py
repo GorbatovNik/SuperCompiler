@@ -7,6 +7,7 @@ from sll_language import *
 from process_tree import  Node, ProcessTree
 import copy
 import global_vars
+import random
 
 class DrivingEngine(object):
     def __init__(self, nameGen, prog):
@@ -118,7 +119,7 @@ class AdvancedProcessTreeBuilder(object):
         args = exp.args
         names1 = self.nameGen.freshNameList(len(args))
         args1 = [Var(x) for x in names1]
-        letExp = Let(beta.exp.cloneFunctor(args1), list(zip(names1, args)). Let.Type.HE_SPLIT)
+        letExp = Let(beta.exp.cloneFunctor(args1), list(zip(names1, args)), Let.Type.HE_SPLIT)
         self.tree.replaceSubtree(beta, letExp)
         self.tree.render("dangerous embedding managed", [beta])
         self.manageLet(beta)
@@ -231,16 +232,16 @@ class AdvancedProcessTreeBuilder(object):
             self.manageLet(beta)
             return
         
-        if beta.exp.isFGHCall():
-            freshName = self.nameGen.freshName()
-            Cf, C, Cz = beta.findMoreGeneralEmbeddedAncestor(freshName) # C = Cz / {x -> Cf/q}
-            if Cf and not Cz.isVar():
-                self.tree.render("More General Embedded Ancestor found", [beta, Cf])
-                letExp = Let(Cz, [(freshName, C)], Let.Type.GENERAL_EMB)
-                self.tree.replaceSubtree(beta, letExp)
-                self.tree.render("Let created", [beta, Cf])
-                self.manageLet(beta)
-                return
+        # if beta.exp.isFGHCall():
+        #     freshName = self.nameGen.freshName()
+        #     Cf, C, Cz = beta.findMoreGeneralEmbeddedAncestor(freshName) # C = Cz / {x -> Cf/q}
+        #     if Cf and not Cz.isVar():
+        #         self.tree.render("More General Embedded Ancestor found", [beta, Cf])
+        #         letExp = Let(Cz, [(freshName, C)], Let.Type.GENERAL_EMB)
+        #         self.tree.replaceSubtree(beta, letExp)
+        #         self.tree.render("Let created", [beta, Cf])
+        #         self.manageLet(beta)
+        #         return
             
         contrNeed = beta.exp.isFGHCall() and self.drivingEngine.drivingFCall(beta.exp, checkContractionNeed=True)
         if beta.exp.isFGHCall():
@@ -263,9 +264,9 @@ def buildAdvancedProcessTree(nameGen, k, prog, exp):
     drivingEngine = DrivingEngine(nameGen, prog)
     builder = AdvancedProcessTreeBuilder(drivingEngine, exp)
     builder.buildRecursive(builder.tree.root)
-    # if global_vars.debug:
-    print("Let stats")
-    for key, value in builder.stats.items():
-        print(f'{key} : {value}')
+    if global_vars.stats:
+        print("Let stats")
+        for key, value in builder.stats.items():
+            print(f'{key} : {value}')
             
     return builder.tree
