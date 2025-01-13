@@ -1,18 +1,18 @@
-# Суперкомпилятор программ на модельном языке (подмножество Scala)
+# Supercompiler for Programs in a Model Language (Subset of Scala)
 
-Суперкомпиляция — разновидность метавычислений, позволяющая проводить автоматический анализ, оптимизацию, специализацию и трансформацию программ. Для этого программа выполняется в обобщенном виде, на целой совокупности входных данных. В процессе суперкомпиляции строится вычислительное дерево, узлами которого являются параметризованные состояния вычислительного процесса — конфигурации. С помощью различных эвристик дерево сворачивается в конечный граф, из которого потом конденсируется остаточная программа.
+Supercompilation is a type of metacomputation that enables automatic analysis, optimization, specialization, and transformation of programs. For this, the program is executed in a generalized form, across a whole set of input data. During the supercompilation process, a computation tree is built, where the nodes represent parameterized states of the computation process — configurations. Using various heuristics, the tree is reduced to a final graph, from which the residual program is then condensed.
 
-Отличительной особенностью этого суперкомпилятора является наличие нового метода анализа выходных форматов конфиграций, основаного на выдвижении и последующем уточнении форматных гипотез.
+A distinctive feature of this supercompiler is the presence of a new method for analyzing the output formats of configurations, based on the formulation and subsequent refinement of format hypotheses.
 
-## Подробнее о суперкомпиляторе
-paper.pdf
+## More About the Supercompiler
+`paper.pdf`
 
-## Перед запуском
+## Before Running
 
-Перед запуском суперкомпилятора, необходимо выполнить следующие действия:
+Before running the supercompiler, the following steps need to be completed:
 
-1. Установить утилиту Graphviz.
-2. Установить необходимые модули с помощью pip:
+1. Install the Graphviz utility.
+2. Install the required modules using pip:
 
 ```sh
 pip install graphviz
@@ -23,9 +23,9 @@ pip install pyparsing
 ## Запуск
 
 ```sh
-python supercompiler.py путь_к_файлу_scala [--debug]
+python supercompiler.py path_to_scala_file [--debug]
 ```
 
-## Примеры программ
+## Example Programs
 
-Примеры программ можно найти в папке tests/
+Example programs can be found in the `tests/` folder.
