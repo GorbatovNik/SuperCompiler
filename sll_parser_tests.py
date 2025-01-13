@@ -5,6 +5,7 @@ from pyparsing import stringEnd, ParseException
 from sll_language import *
 from sll_parser import *
 
+
 class SLLParser_Tests(unittest.TestCase):
 
     def stringOK(self, p, expected, input):

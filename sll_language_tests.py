@@ -2,6 +2,7 @@ import unittest
 
 from sll_language import *
 
+
 class SLanguage_Tests(unittest.TestCase):
 
     def testStrCall(self):

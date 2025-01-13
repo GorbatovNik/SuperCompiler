@@ -6,6 +6,7 @@ from sll_language import *
 from sll_parser import pExp
 from algebra import matchAgainst, equiv
 
+
 class AlgebraTest(unittest.TestCase):
 
     def testSubst(self):

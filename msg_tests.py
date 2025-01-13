@@ -3,6 +3,7 @@ import unittest
 from sll_parser import pExp
 from msg import *
 
+
 class TestMSG(unittest.TestCase):
 
     def msgOK(self, e1, e2, expected):

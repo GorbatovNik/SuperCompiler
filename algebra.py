@@ -5,26 +5,26 @@ from sll_language import *
 class Matcher(object):
     def __init__(self):
         self.subst = dict()
-    def match(self, pat, exp):
-        if pat.isVar():
-            e = self.subst.get(pat.vname, None)
+    def match(self, pattern, exp):
+        if pattern.isVar():
+            e = self.subst.get(pattern.vname, None)
             if e == None:
-                self.subst[pat.vname] = exp
+                self.subst[pattern.vname] = exp
             elif e != exp:
                 self.subst = None
-        elif (pat.isCall() and
-              pat.hasTheSameFunctorAs(exp) and
-              len(pat.args) == len(exp.args)):
-            for p, e in zip(pat.args, exp.args):
+        elif (pattern.isCall() and
+              pattern.hasTheSameFunctorAs(exp) and
+              len(pattern.args) == len(exp.args)):
+            for p, e in zip(pattern.args, exp.args):
                 self.match(p, e)
                 if self.subst == None:
                     return
         else:
             self.subst = None
 
-def matchAgainst(pat, exp):
+def matchAgainst(pattern, exp):
     matcher = Matcher()
-    matcher.match(pat, exp);
+    matcher.match(pattern, exp);
     return matcher.subst
 
 def instOf(e1, e2):
